@@ -1,0 +1,32 @@
+version: "3.8"
+
+services:
+  rabbitmq:
+    image: rabbitmq:4-management
+    container_name: rabbitmq
+    ports:
+      - "${RABBITMQ_STREAM_PORT}:5552" # RabbitMQ Stream port
+      - "${RABBITMQ_UI_PORT}:15672" # Management UI
+      - "${RABBITMQ_AMQP_PORT}:5672" # AMQP port
+    environment:
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_DEFAULT_USER}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_DEFAULT_PASS}
+      - RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS=-rabbitmq_stream advertised_host ${RABBITMQ_ADVERTISED_HOST}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    command: >
+      bash -c "
+      rabbitmq-server &
+      sleep 10 &&
+      rabbitmq-plugins enable rabbitmq_stream rabbitmq_stream_management &&
+      wait
+      "
+
+volumes:
+  rabbitmq_data:
