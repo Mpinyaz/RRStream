@@ -1,6 +1,7 @@
 package producer
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"strconv"
@@ -8,7 +9,13 @@ import (
 	stream "github.com/rabbitmq/rabbitmq-stream-go-client/pkg/stream"
 )
 
-func StartProducer() {
+type StreamProducer struct {
+	Env        *stream.Environment
+	Producer   *stream.Producer
+	StreamName string
+}
+
+func StartProducer() (*StreamProducer, error) {
 	host := os.Getenv("RABBITMQ_ADVERTISED_HOST")
 	portStr := os.Getenv("RABBITMQ_STREAM_PORT")
 	port, err := strconv.Atoi(portStr)
@@ -27,6 +34,26 @@ func StartProducer() {
 			SetUser(username).
 			SetPassword(password),
 	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create environment: %w", err)
+	}
 
 	err = env.DeclareStream(streamName, &stream.StreamOptions{MaxLengthBytes: stream.ByteCapacity{}.GB(5)})
+	if err != nil {
+		return nil, fmt.Errorf("failed to declare stream: %w", err)
+	}
+
+	producerOptions := stream.NewProducerOptions()
+	producerOptions.SetProducerName("rrstreamproducer")
+	producerOptions.SetCompression(stream.Compression{}.Gzip())
+
+	producer, err := env.NewProducer(streamName, producerOptions)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create producer: %w", err)
+	}
+	return &StreamProducer{
+		Env:        env,
+		Producer:   producer,
+		StreamName: streamName,
+	}, nil
 }
