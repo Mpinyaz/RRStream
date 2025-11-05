@@ -60,3 +60,12 @@ message Task {
   optional int32 retry_count = 6;
 }
 ```
+
+## Roadmap
+
+- [x] Create Docker Compose setup
+- [ ] Add metrics and observability (Prometheus/Grafana)
+- [ ] Implement dead letter queue handling
+- [ ] Add CI/CD pipeline
+- [ ] Add authentication and TLS support
+- [ ] Implement consumer health checks
