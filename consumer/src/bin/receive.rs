@@ -3,11 +3,11 @@ use futures::StreamExt;
 use rabbitmq_stream_client::error::StreamCreateError;
 use rabbitmq_stream_client::types::{ByteCapacity, OffsetSpecification, ResponseCode};
 use rabbitmq_stream_client::Environment;
+use rrconsumer::process_message;
 use std::env;
 use tokio::signal;
 use tokio::task;
 use tracing::{error, info, warn};
-use RRconsumer::process_message;
 
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
