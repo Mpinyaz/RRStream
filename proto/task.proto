@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package task;
+
+option go_package = "rrproducer/producer/models;models";
+
+message Task {
+  string id = 1;
+  string task_type = 2;
+  map<string, string> payload = 3;
+  int64 created_at = 4;
+  optional uint32 priority = 5;
+  optional int32 retry_count = 6;
+}

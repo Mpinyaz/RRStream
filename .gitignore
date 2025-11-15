@@ -2,3 +2,4 @@
 .env
 target/
 consumer/target
+producer/logs/app.log
