@@ -6,8 +6,8 @@ import (
 	"os"
 	"strconv"
 
-	models "rrproducer/models/proto"
-	"rrproducer/utils"
+	models "rrproducer/pkg/models/proto"
+	"rrproducer/pkg/utils"
 
 	"github.com/google/uuid"
 	"github.com/rabbitmq/rabbitmq-stream-go-client/pkg/amqp"

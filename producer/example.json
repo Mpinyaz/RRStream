@@ -1,0 +1,12 @@
+{
+  "id": "task-001",
+  "task_type": "email_notification",
+  "payload": {
+    "recipient": "user@example.com",
+    "subject": "Welcome",
+    "template": "welcome_email",
+    "priority": "high"
+  },
+  "priority": 1,
+  "retry_count": 3
+}
