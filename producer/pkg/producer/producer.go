@@ -14,7 +14,7 @@ func InitStream() {
 	defer utils.LogFlush()
 
 	// Load environment variables
-	if err := godotenv.Load("../../.env"); err != nil {
+	if err := godotenv.Load("../.env"); err != nil {
 		log.Fatal("No .env file found", zap.Error(err))
 	}
 	log.Info("Environment variables loaded successfully")

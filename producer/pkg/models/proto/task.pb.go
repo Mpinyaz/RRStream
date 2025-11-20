@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.10
 // 	protoc        v6.33.0
-// source: proto/task.proto
+// source: task.proto
 
 package models
 
@@ -35,7 +35,7 @@ type Task struct {
 
 func (x *Task) Reset() {
 	*x = Task{}
-	mi := &file_proto_task_proto_msgTypes[0]
+	mi := &file_task_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -47,7 +47,7 @@ func (x *Task) String() string {
 func (*Task) ProtoMessage() {}
 
 func (x *Task) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_task_proto_msgTypes[0]
+	mi := &file_task_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -60,7 +60,7 @@ func (x *Task) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Task.ProtoReflect.Descriptor instead.
 func (*Task) Descriptor() ([]byte, []int) {
-	return file_proto_task_proto_rawDescGZIP(), []int{0}
+	return file_task_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *Task) GetId() string {
@@ -105,11 +105,12 @@ func (x *Task) GetRetryCount() int32 {
 	return 0
 }
 
-var File_proto_task_proto protoreflect.FileDescriptor
+var File_task_proto protoreflect.FileDescriptor
 
-const file_proto_task_proto_rawDesc = "" +
+const file_task_proto_rawDesc = "" +
 	"\n" +
-	"\x10proto/task.proto\x12\x04task\"\xa5\x02\n" +
+	"\n" +
+	"task.proto\x12\x04task\"\xa5\x02\n" +
 	"\x04Task\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1b\n" +
 	"\ttask_type\x18\x02 \x01(\tR\btaskType\x121\n" +
@@ -126,23 +127,23 @@ const file_proto_task_proto_rawDesc = "" +
 	"\f_retry_countB#Z!rrproducer/producer/models;modelsb\x06proto3"
 
 var (
-	file_proto_task_proto_rawDescOnce sync.Once
-	file_proto_task_proto_rawDescData []byte
+	file_task_proto_rawDescOnce sync.Once
+	file_task_proto_rawDescData []byte
 )
 
-func file_proto_task_proto_rawDescGZIP() []byte {
-	file_proto_task_proto_rawDescOnce.Do(func() {
-		file_proto_task_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_proto_task_proto_rawDesc), len(file_proto_task_proto_rawDesc)))
+func file_task_proto_rawDescGZIP() []byte {
+	file_task_proto_rawDescOnce.Do(func() {
+		file_task_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_task_proto_rawDesc), len(file_task_proto_rawDesc)))
 	})
-	return file_proto_task_proto_rawDescData
+	return file_task_proto_rawDescData
 }
 
-var file_proto_task_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
-var file_proto_task_proto_goTypes = []any{
+var file_task_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_task_proto_goTypes = []any{
 	(*Task)(nil), // 0: task.Task
 	nil,          // 1: task.Task.PayloadEntry
 }
-var file_proto_task_proto_depIdxs = []int32{
+var file_task_proto_depIdxs = []int32{
 	1, // 0: task.Task.payload:type_name -> task.Task.PayloadEntry
 	1, // [1:1] is the sub-list for method output_type
 	1, // [1:1] is the sub-list for method input_type
@@ -151,27 +152,27 @@ var file_proto_task_proto_depIdxs = []int32{
 	0, // [0:1] is the sub-list for field type_name
 }
 
-func init() { file_proto_task_proto_init() }
-func file_proto_task_proto_init() {
-	if File_proto_task_proto != nil {
+func init() { file_task_proto_init() }
+func file_task_proto_init() {
+	if File_task_proto != nil {
 		return
 	}
-	file_proto_task_proto_msgTypes[0].OneofWrappers = []any{}
+	file_task_proto_msgTypes[0].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_task_proto_rawDesc), len(file_proto_task_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_task_proto_rawDesc), len(file_task_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   2,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
-		GoTypes:           file_proto_task_proto_goTypes,
-		DependencyIndexes: file_proto_task_proto_depIdxs,
-		MessageInfos:      file_proto_task_proto_msgTypes,
+		GoTypes:           file_task_proto_goTypes,
+		DependencyIndexes: file_task_proto_depIdxs,
+		MessageInfos:      file_task_proto_msgTypes,
 	}.Build()
-	File_proto_task_proto = out.File
-	file_proto_task_proto_goTypes = nil
-	file_proto_task_proto_depIdxs = nil
+	File_task_proto = out.File
+	file_task_proto_goTypes = nil
+	file_task_proto_depIdxs = nil
 }

@@ -7,6 +7,7 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/natefinch/lumberjack v2.0.0+incompatible
 	github.com/rabbitmq/rabbitmq-stream-go-client v1.5.8
+	github.com/spf13/cobra v1.10.1
 	go.uber.org/zap v1.27.0
 	google.golang.org/protobuf v1.36.10
 )
@@ -20,7 +21,6 @@ require (
 	github.com/pierrec/lz4 v2.6.1+incompatible // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
-	github.com/spf13/cobra v1.10.1 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect

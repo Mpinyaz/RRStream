@@ -1,11 +1,13 @@
-.PHONY: proto clean help
+.PHONY: proto clean help install-tools
 
 # Generate protobuf Go code
 proto:
 	@echo "Generating protobuf files..."
-	protoc --go_out=pkg/models/proto \
+	protoc \
+		-I ../proto \
+		--go_out=pkg/models/proto \
 		--go_opt=paths=source_relative \
-		proto/task.proto
+		../proto/task.proto
 	@echo "✓ Protobuf generation complete"
 
 # Clean generated files
@@ -25,4 +27,4 @@ help:
 	@echo "Available targets:"
 	@echo "  proto         - Generate Go code from .proto files"
 	@echo "  clean         - Remove generated protobuf files"
-	@echo "  install-tools - Install required protoc tools"
+	@echo "  install-tools - Install protoc plugin"

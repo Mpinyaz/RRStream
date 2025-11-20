@@ -13,6 +13,7 @@ import (
 	"github.com/rabbitmq/rabbitmq-stream-go-client/pkg/amqp"
 	stream "github.com/rabbitmq/rabbitmq-stream-go-client/pkg/stream"
 	"go.uber.org/zap"
+	"google.golang.org/protobuf/proto"
 )
 
 type StreamProducer struct {
@@ -113,5 +114,36 @@ func (sp *StreamProducer) SendTask(task *models.Task) error {
 	return nil
 }
 
-// func (sp *StreamProducer) handleJSONPublish() error {
-// }
+func (sp *StreamProducer) SendTaskJSON(task *models.Task) (err error) {
+	// Serialize to JSON
+	var taskJSON []byte
+	if taskJSON, err = json.Marshal(task); err != nil {
+		return err
+	}
+
+	// Create message with JSON data
+	msg := amqp.NewMessage(taskJSON)
+	msg.Properties = &amqp.MessageProperties{
+		ContentType: "application/json", // ← Sets content type to JSON
+	}
+
+	// Send to stream
+	return sp.Producer.Send(msg)
+}
+
+func (sp *StreamProducer) SendTaskProtobuf(task *models.Task) (err error) {
+	// Serialize to protobuf binary
+	var taskProto []byte
+	if taskProto, err = proto.Marshal(task); err != nil {
+		return err
+	}
+
+	// Create message with protobuf data
+	msg := amqp.NewMessage(taskProto)
+	msg.Properties = &amqp.MessageProperties{
+		ContentType: "application/x-protobuf", // ← Sets content type to protobuf
+	}
+
+	// Send to stream
+	return sp.Producer.Send(msg)
+}
