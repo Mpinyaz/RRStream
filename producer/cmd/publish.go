@@ -78,7 +78,7 @@ func publishTask() {
 	}
 
 	// Convert to protobuf Task
-	task := &models.Task{
+	task := &models.TaskRequest{
 		Id:        getStringField(taskData, "id"),
 		TaskType:  getStringField(taskData, "task_type"),
 		Payload:   convertPayload(taskData["payload"]),

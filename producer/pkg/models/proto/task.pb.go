@@ -21,32 +21,33 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type Task struct {
+type TaskRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	TaskType      string                 `protobuf:"bytes,2,opt,name=task_type,json=taskType,proto3" json:"task_type,omitempty"`
-	Payload       map[string]string      `protobuf:"bytes,3,rep,name=payload,proto3" json:"payload,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	CreatedAt     int64                  `protobuf:"varint,4,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	Priority      *uint32                `protobuf:"varint,5,opt,name=priority,proto3,oneof" json:"priority,omitempty"`
-	RetryCount    *int32                 `protobuf:"varint,6,opt,name=retry_count,json=retryCount,proto3,oneof" json:"retry_count,omitempty"`
+	ContentType   string                 `protobuf:"bytes,3,opt,name=content_type,json=contentType,proto3" json:"content_type,omitempty"`
+	Payload       map[string]string      `protobuf:"bytes,4,rep,name=payload,proto3" json:"payload,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	CreatedAt     int64                  `protobuf:"varint,5,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	Priority      *uint32                `protobuf:"varint,6,opt,name=priority,proto3,oneof" json:"priority,omitempty"`
+	RetryCount    *int32                 `protobuf:"varint,7,opt,name=retry_count,json=retryCount,proto3,oneof" json:"retry_count,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *Task) Reset() {
-	*x = Task{}
+func (x *TaskRequest) Reset() {
+	*x = TaskRequest{}
 	mi := &file_task_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *Task) String() string {
+func (x *TaskRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*Task) ProtoMessage() {}
+func (*TaskRequest) ProtoMessage() {}
 
-func (x *Task) ProtoReflect() protoreflect.Message {
+func (x *TaskRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_task_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -58,51 +59,126 @@ func (x *Task) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Task.ProtoReflect.Descriptor instead.
-func (*Task) Descriptor() ([]byte, []int) {
+// Deprecated: Use TaskRequest.ProtoReflect.Descriptor instead.
+func (*TaskRequest) Descriptor() ([]byte, []int) {
 	return file_task_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *Task) GetId() string {
+func (x *TaskRequest) GetId() string {
 	if x != nil {
 		return x.Id
 	}
 	return ""
 }
 
-func (x *Task) GetTaskType() string {
+func (x *TaskRequest) GetTaskType() string {
 	if x != nil {
 		return x.TaskType
 	}
 	return ""
 }
 
-func (x *Task) GetPayload() map[string]string {
+func (x *TaskRequest) GetContentType() string {
+	if x != nil {
+		return x.ContentType
+	}
+	return ""
+}
+
+func (x *TaskRequest) GetPayload() map[string]string {
 	if x != nil {
 		return x.Payload
 	}
 	return nil
 }
 
-func (x *Task) GetCreatedAt() int64 {
+func (x *TaskRequest) GetCreatedAt() int64 {
 	if x != nil {
 		return x.CreatedAt
 	}
 	return 0
 }
 
-func (x *Task) GetPriority() uint32 {
+func (x *TaskRequest) GetPriority() uint32 {
 	if x != nil && x.Priority != nil {
 		return *x.Priority
 	}
 	return 0
 }
 
-func (x *Task) GetRetryCount() int32 {
+func (x *TaskRequest) GetRetryCount() int32 {
 	if x != nil && x.RetryCount != nil {
 		return *x.RetryCount
 	}
 	return 0
+}
+
+type TaskResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	TaskType      string                 `protobuf:"bytes,2,opt,name=task_type,json=taskType,proto3" json:"task_type,omitempty"`
+	Success       bool                   `protobuf:"varint,3,opt,name=success,proto3" json:"success,omitempty"`
+	Message       string                 `protobuf:"bytes,4,opt,name=message,proto3" json:"message,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TaskResponse) Reset() {
+	*x = TaskResponse{}
+	mi := &file_task_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TaskResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TaskResponse) ProtoMessage() {}
+
+func (x *TaskResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_task_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TaskResponse.ProtoReflect.Descriptor instead.
+func (*TaskResponse) Descriptor() ([]byte, []int) {
+	return file_task_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *TaskResponse) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *TaskResponse) GetTaskType() string {
+	if x != nil {
+		return x.TaskType
+	}
+	return ""
+}
+
+func (x *TaskResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
+func (x *TaskResponse) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
 }
 
 var File_task_proto protoreflect.FileDescriptor
@@ -110,21 +186,29 @@ var File_task_proto protoreflect.FileDescriptor
 const file_task_proto_rawDesc = "" +
 	"\n" +
 	"\n" +
-	"task.proto\x12\x04task\"\xa5\x02\n" +
-	"\x04Task\x12\x0e\n" +
+	"task.proto\x12\x04task\"\xd6\x02\n" +
+	"\vTaskRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1b\n" +
-	"\ttask_type\x18\x02 \x01(\tR\btaskType\x121\n" +
-	"\apayload\x18\x03 \x03(\v2\x17.task.Task.PayloadEntryR\apayload\x12\x1d\n" +
+	"\ttask_type\x18\x02 \x01(\tR\btaskType\x12!\n" +
+	"\fcontent_type\x18\x03 \x01(\tR\vcontentType\x128\n" +
+	"\apayload\x18\x04 \x03(\v2\x1e.task.TaskRequest.PayloadEntryR\apayload\x12\x1d\n" +
 	"\n" +
-	"created_at\x18\x04 \x01(\x03R\tcreatedAt\x12\x1f\n" +
-	"\bpriority\x18\x05 \x01(\rH\x00R\bpriority\x88\x01\x01\x12$\n" +
-	"\vretry_count\x18\x06 \x01(\x05H\x01R\n" +
+	"created_at\x18\x05 \x01(\x03R\tcreatedAt\x12\x1f\n" +
+	"\bpriority\x18\x06 \x01(\rH\x00R\bpriority\x88\x01\x01\x12$\n" +
+	"\vretry_count\x18\a \x01(\x05H\x01R\n" +
 	"retryCount\x88\x01\x01\x1a:\n" +
 	"\fPayloadEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B\v\n" +
 	"\t_priorityB\x0e\n" +
-	"\f_retry_countB#Z!rrproducer/producer/models;modelsb\x06proto3"
+	"\f_retry_count\"o\n" +
+	"\fTaskResponse\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1b\n" +
+	"\ttask_type\x18\x02 \x01(\tR\btaskType\x12\x18\n" +
+	"\asuccess\x18\x03 \x01(\bR\asuccess\x12\x18\n" +
+	"\amessage\x18\x04 \x01(\tR\amessage25\n" +
+	"\x04Task\x12-\n" +
+	"\x04Send\x12\x11.task.TaskRequest\x1a\x12.task.TaskResponseB#Z!rrproducer/producer/models;modelsb\x06proto3"
 
 var (
 	file_task_proto_rawDescOnce sync.Once
@@ -138,15 +222,18 @@ func file_task_proto_rawDescGZIP() []byte {
 	return file_task_proto_rawDescData
 }
 
-var file_task_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_task_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_task_proto_goTypes = []any{
-	(*Task)(nil), // 0: task.Task
-	nil,          // 1: task.Task.PayloadEntry
+	(*TaskRequest)(nil),  // 0: task.TaskRequest
+	(*TaskResponse)(nil), // 1: task.TaskResponse
+	nil,                  // 2: task.TaskRequest.PayloadEntry
 }
 var file_task_proto_depIdxs = []int32{
-	1, // 0: task.Task.payload:type_name -> task.Task.PayloadEntry
-	1, // [1:1] is the sub-list for method output_type
-	1, // [1:1] is the sub-list for method input_type
+	2, // 0: task.TaskRequest.payload:type_name -> task.TaskRequest.PayloadEntry
+	0, // 1: task.Task.Send:input_type -> task.TaskRequest
+	1, // 2: task.Task.Send:output_type -> task.TaskResponse
+	2, // [2:3] is the sub-list for method output_type
+	1, // [1:2] is the sub-list for method input_type
 	1, // [1:1] is the sub-list for extension type_name
 	1, // [1:1] is the sub-list for extension extendee
 	0, // [0:1] is the sub-list for field type_name
@@ -164,9 +251,9 @@ func file_task_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_task_proto_rawDesc), len(file_task_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   2,
+			NumMessages:   3,
 			NumExtensions: 0,
-			NumServices:   0,
+			NumServices:   1,
 		},
 		GoTypes:           file_task_proto_goTypes,
 		DependencyIndexes: file_task_proto_depIdxs,

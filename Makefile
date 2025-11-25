@@ -4,16 +4,16 @@
 proto:
 	@echo "Generating protobuf files..."
 	protoc \
-		-I ../proto \
-		--go_out=pkg/models/proto \
+		-I ./proto \
+		--go_out=producer/pkg/models/proto \
 		--go_opt=paths=source_relative \
-		../proto/task.proto
+		./proto/task.proto
 	@echo "✓ Protobuf generation complete"
 
 # Clean generated files
 clean:
 	@echo "Cleaning generated protobuf files..."
-	rm -f pkg/models/proto/*.pb.go
+	rm -f producer/pkg/models/proto/*.pb.go
 	@echo "✓ Clean complete"
 
 # Install required tools

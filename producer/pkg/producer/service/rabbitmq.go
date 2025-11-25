@@ -95,7 +95,7 @@ func (sp *StreamProducer) handlePublishConfirm(confirms stream.ChannelPublishCon
 	}()
 }
 
-func (sp *StreamProducer) SendTask(task *models.Task) error {
+func (sp *StreamProducer) SendTask(task *models.TaskRequest) error {
 	taskJSON, err := json.Marshal(task)
 	if err != nil {
 		sp.Logger.Error("failed to marshal task", zap.Error(err))
@@ -114,7 +114,7 @@ func (sp *StreamProducer) SendTask(task *models.Task) error {
 	return nil
 }
 
-func (sp *StreamProducer) SendTaskJSON(task *models.Task) (err error) {
+func (sp *StreamProducer) SendTaskJSON(task *models.TaskRequest) (err error) {
 	// Serialize to JSON
 	var taskJSON []byte
 	if taskJSON, err = json.Marshal(task); err != nil {
@@ -131,7 +131,7 @@ func (sp *StreamProducer) SendTaskJSON(task *models.Task) (err error) {
 	return sp.Producer.Send(msg)
 }
 
-func (sp *StreamProducer) SendTaskProtobuf(task *models.Task) (err error) {
+func (sp *StreamProducer) SendTaskProtobuf(task *models.TaskRequest) (err error) {
 	// Serialize to protobuf binary
 	var taskProto []byte
 	if taskProto, err = proto.Marshal(task); err != nil {

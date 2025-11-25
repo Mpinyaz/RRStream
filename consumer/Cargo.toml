@@ -6,11 +6,20 @@ edition = "2021"
 [dependencies]
 futures = "0.3.31"
 rabbitmq-stream-client = "0.9.0"
+bytes = "*"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "*"
+serde_amqp = "*"
 tracing = "*"
 tracing-subscriber = "*"
 anyhow = "*"
-tokio = { version = "1.47.1", features = ["rt", "rt-multi-thread", "macros"] }
+tokio = { version = "1.47.1", features = ['full'] }
 uuid = { version = "1", features = ["serde", "v4"] }
 dotenv = "0.15.0"
+prost = "*"
+tonic-prost = "*"
+prost-types = "*"
+tonic = "0.14.2"
+
+[build-dependencies]
+tonic-prost-build = "*"
