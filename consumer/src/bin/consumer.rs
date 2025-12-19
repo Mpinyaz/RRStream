@@ -1,51 +1,36 @@
+use anyhow::Result;
 use dotenv::dotenv;
 use futures::StreamExt;
 use rabbitmq_stream_client::error::StreamCreateError;
 use rabbitmq_stream_client::types::{ByteCapacity, OffsetSpecification, ResponseCode};
 use rabbitmq_stream_client::Environment;
 use rrconsumer::config::Config;
-use rrconsumer::worker::{decode_message, process_task, ContentType};
-use std::sync::Arc;
+use rrconsumer::worker::{decode_message, process_task};
 use tokio::signal;
 use tokio::task;
 use tracing::{error, info, warn};
 
-use crate::{send_task_response, start_response_producer};
+use rrconsumer::responsepublish::{init_response_producer, send_task_response};
 
-// Message processor that handles incoming tasks and sends responses
-struct MessageProcessor<T: Send + Sync> {
-    response_producer: Arc<rabbitmq_stream_client::Producer<T>>,
-}
+struct MessageProcessor;
 
-impl<T: Send + Sync + 'static> MessageProcessor<T> {
-    fn new(response_producer: rabbitmq_stream_client::Producer<T>) -> Self {
-        Self {
-            response_producer: Arc::new(response_producer),
-        }
+impl MessageProcessor {
+    fn new() -> Self {
+        Self {}
     }
 
-    async fn process(&self, msg: rabbitmq_stream_client::types::Message) -> anyhow::Result<()> {
-        // Decode the message to get correlation_id and content_type
-        let decoded = decode_message(&msg)?;
-        let correlation_id = msg.properties().and_then(|p| p.correlation_id.clone());
-        let content_type = decoded.content_type;
+    async fn process(&self, msg: &rabbitmq_stream_client::types::Message) -> anyhow::Result<()> {
+        let decoded = decode_message(msg)?;
 
         info!(
             "Processing message: task_id={}, correlation_id={:?}",
-            decoded.task.id, correlation_id
+            decoded.task.id, decoded.correlation_id
         );
 
         // Process the task
-        let response = process_task(&msg).await?;
+        let response = process_task(msg).await?;
 
-        // Send response back to response stream
-        send_task_response(
-            &self.response_producer,
-            &response,
-            content_type,
-            correlation_id,
-        )
-        .await?;
+        send_task_response(&response, decoded.content_type, decoded.correlation_id).await?;
 
         info!("Response sent for task_id={}", response.id);
 
@@ -101,11 +86,18 @@ async fn main() -> Result<(), anyhow::Error> {
         Err(e) => return Err(e.into()),
     }
 
-    // Start the response producer
-    let response_producer = match start_response_producer().await {
-        Ok(producer) => {
+    // Create consumer for incoming tasks
+    let mut consumer = environment
+        .consumer()
+        .offset(OffsetSpecification::Next) // Changed to Next for new messages
+        .build(&config.response_stream_name)
+        .await?;
+
+    info!("📡 Consumer started for stream: {}", config.stream_name);
+
+    match init_response_producer().await {
+        Ok(_) => {
             info!("✅ Response producer initialized successfully");
-            producer
         }
         Err(e) => {
             error!("❌ Failed to start response producer: {}", e);
@@ -113,17 +105,8 @@ async fn main() -> Result<(), anyhow::Error> {
         }
     };
 
-    // Create consumer for incoming tasks
-    let mut consumer = environment
-        .consumer()
-        .offset(OffsetSpecification::Next) // Changed to Next for new messages
-        .build(&config.stream_name)
-        .await?;
-
-    info!("📡 Consumer started for stream: {}", config.stream_name);
-
     let handle = consumer.handle();
-    let processor = MessageProcessor::new(response_producer);
+    let processor = MessageProcessor::new();
 
     // Spawn consumer task
     let consumer_task = task::spawn(async move {
@@ -132,10 +115,10 @@ async fn main() -> Result<(), anyhow::Error> {
 
         while let Some(delivery) = consumer.next().await {
             match delivery {
-                Ok(msg) => {
+                Ok(req) => {
                     message_count += 1;
 
-                    if let Err(e) = processor.process(msg).await {
+                    if let Err(e) = processor.process(req.message()).await {
                         error!("Failed to process message: {}", e);
                     }
 

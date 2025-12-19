@@ -65,12 +65,8 @@ pub fn decode_message(msg: &StreamMessage) -> Result<DecodedMessage> {
         .map(|s| s.to_string())
         .unwrap_or_else(|| "application/x-protobuf".to_string());
 
-    let correlation_id = properties.and_then(|p| {
-        p.correlation_id.as_ref().map(|cid| {
-            // correlation_id is a String in Properties, so this should work
-            cid.clone()
-        })
-    });
+    let correlation_id =
+        properties.and_then(|p| p.correlation_id.as_ref().map(|cid| format!("{:?}", cid)));
     let content_type = ContentType::from_str(&content_type_string).unwrap_or(ContentType::Protobuf);
 
     debug!(

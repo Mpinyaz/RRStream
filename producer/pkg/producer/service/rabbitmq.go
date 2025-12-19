@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"time"
+
+	"rrproducer/pkg/utils"
 
 	models "rrproducer/pkg/models/proto"
-	"rrproducer/pkg/utils"
 
 	"github.com/google/uuid"
 	"github.com/rabbitmq/rabbitmq-stream-go-client/pkg/amqp"
@@ -48,7 +50,7 @@ func StartProducer() (*StreamProducer, error) {
 		return nil, fmt.Errorf("failed to create environment: %w", err)
 	}
 
-	err = env.DeclareStream(streamName, &stream.StreamOptions{MaxLengthBytes: stream.ByteCapacity{}.GB(5)})
+	err = env.DeclareStream(streamName, &stream.StreamOptions{MaxLengthBytes: stream.ByteCapacity{}.GB(5), MaxAge: time.Duration(3600*24*7) * time.Second})
 	if err != nil {
 		logger.Error("failed to declare stream", zap.Error(err))
 		return nil, fmt.Errorf("failed to declare stream: %w", err)

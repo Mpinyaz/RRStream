@@ -12,7 +12,7 @@ message TaskRequest {
   string id = 1;
   string task_type = 2;
   string content_type =3;
-  map<string, string> payload = 4;
+  Payload payload = 4;
   int64 created_at = 5;
   optional uint32 priority = 6;
   optional int32 retry_count = 7;
@@ -23,4 +23,44 @@ message TaskResponse {
   string task_type = 2;
   bool success = 3;
   string message = 4;
+}
+
+message UInt128 {
+  fixed64 low = 1;
+  fixed64 high = 2;
+}
+
+message CreateAccountRequest {
+  UInt128 id = 1;
+  uint32 ledger = 2;
+  uint32 code = 3;
+  UInt128 user_data_128 = 4;
+  uint64 user_data_64 = 5;
+  uint32 user_data_32 = 6;
+  uint32 flags = 7;
+}
+
+message CreateTransferRequest {
+  UInt128 id = 1;
+  UInt128 debit_account_id = 2;
+  UInt128 credit_account_id = 3;
+  UInt128 amount = 4;
+  uint32 ledger = 5;
+  uint32 code = 6;
+  uint32 flags = 7;
+}
+
+message Payload {
+  oneof operation {
+    CreateAccountRequest create_account = 1;
+    CreateTransferRequest create_transfer = 2;
+  }
+}
+
+enum TransactionStatus {
+  TRANSACTION_STATUS_UNSPECIFIED = 0;
+  TRANSACTION_STATUS_PENDING = 1;
+  TRANSACTION_STATUS_COMPLETED = 2;
+  TRANSACTION_STATUS_FAILED = 3;
+  TRANSACTION_STATUS_REVOKED = 4;
 }

@@ -1412,6 +1412,7 @@ dependencies = [
  "serde",
  "serde_amqp",
  "serde_json",
+ "tigerbeetle",
  "tokio",
  "tonic",
  "tonic-prost",
@@ -1715,6 +1716,12 @@ checksum = "f60246a4944f24f6e018aa17cdeffb7818b76356965d03b07d6a9886e8962185"
 dependencies = [
  "cfg-if",
 ]
+
+[[package]]
+name = "tigerbeetle"
+version = "0.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "43509875cca9c5b95c7c3acd9107f30ba328621403f8da2261774708ac9a337d"
 
 [[package]]
 name = "tinystr"

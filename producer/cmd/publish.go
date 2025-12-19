@@ -79,9 +79,9 @@ func publishTask() {
 
 	// Convert to protobuf Task
 	task := &models.TaskRequest{
-		Id:        getStringField(taskData, "id"),
-		TaskType:  getStringField(taskData, "task_type"),
-		Payload:   convertPayload(taskData["payload"]),
+		Id:       getStringField(taskData, "id"),
+		TaskType: getStringField(taskData, "task_type"),
+		// Payload:   getStringField(taskData, "payload"),
 		CreatedAt: time.Now().Unix(),
 	}
 
@@ -112,7 +112,7 @@ func publishTask() {
 	log.Info("Parsed task",
 		zap.String("id", task.Id),
 		zap.String("type", task.TaskType),
-		zap.Int("payload_fields", len(task.Payload)),
+		// zap.Int("payload_fields", len(task.Payload)),
 	)
 
 	// Start producer

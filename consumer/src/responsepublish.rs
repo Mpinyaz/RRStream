@@ -1,38 +1,35 @@
 use anyhow::Result;
 use rabbitmq_stream_client::error::StreamCreateError;
-use rabbitmq_stream_client::types::{
-    ByteCapacity, Message as StreamMessage, OffsetSpecification, Properties, ResponseCode,
-};
-use rabbitmq_stream_client::{Environment, Producer};
-use tracing::{error, info};
+use rabbitmq_stream_client::types::{ByteCapacity, Message as StreamMessage, ResponseCode};
+use rabbitmq_stream_client::{Environment, NoDedup, Producer};
+use tokio::sync::OnceCell;
+use tracing::info;
 use uuid::Uuid;
 
-use rrconsumer::config::Config;
-use rrconsumer::task::TaskResponse;
-use rrconsumer::worker::ContentType;
+use crate::config::Config;
+use crate::task::TaskResponse;
+use crate::worker::ContentType;
 
-// Then use:
-/// Send a response message to the reply stream
-/// with correct content-type and correlation-id.
-pub async fn send_response<T>(
-    producer: &Producer<T>,
+// 1. Define a Global Static Producer
+// We use OnceCell to store the producer so it can be initialized asynchronously.
+// We must specify the concrete type <NoDeduplication> instead of "impl Send".
+static RESPONSE_PRODUCER: OnceCell<Producer<NoDedup>> = OnceCell::const_new();
+
+/// This helper retrieves the global producer, initializing it only if it doesn't exist yet.
+async fn get_global_producer() -> Result<&'static Producer<NoDedup>> {
+    RESPONSE_PRODUCER
+        .get_or_try_init(init_response_producer)
+        .await
+}
+
+/// Send a response message using the Global Producer
+/// (No need to pass producer as argument anymore)
+pub async fn send_response(
     bytes: Vec<u8>,
     content_type: ContentType,
     correlation_id: Option<String>,
-) -> Result<()>
-where
-    T: Send + Sync,
-{
-    let mut props = Properties::default();
-
-    // Set content type
-    props.content_type = Some(content_type.as_str().into());
-
-    // Set correlation_id from request
-    props.correlation_id = correlation_id.clone();
-
-    // Unique message ID for tracing
-    props.message_id = Some(Uuid::new_v4().to_string().into());
+) -> Result<()> {
+    let producer = get_global_producer().await?;
 
     info!(
         "Sending response: correlation_id={:?}, content_type={}, size={} bytes",
@@ -41,27 +38,26 @@ where
         bytes.len()
     );
 
-    // Build and send message
     let msg = StreamMessage::builder()
+        .properties()
+        .content_encoding(content_type.as_str())
+        .message_id(Uuid::new_v4().to_string())
+        .content_type(content_type.as_str())
+        .correlation_id(correlation_id.unwrap())
+        .message_builder()
         .body(bytes)
-        .properties(props)
         .build();
 
-    producer.send(msg).await?;
+    producer.send_with_confirm(msg).await?;
 
     Ok(())
 }
 
-/// Helper to encode and send a TaskResponse
-pub async fn send_task_response<T>(
-    producer: &Producer<T>,
+pub async fn send_task_response(
     response: &TaskResponse,
     content_type: ContentType,
     correlation_id: Option<String>,
-) -> Result<()>
-where
-    T: Send + Sync,
-{
+) -> Result<()> {
     use prost::Message as ProstMessage;
     use serde_json::to_vec as json_serialize;
 
@@ -75,16 +71,12 @@ where
         }
     };
 
-    // Send the encoded response
-    send_response(producer, bytes, content_type, correlation_id).await
+    send_response(bytes, content_type, correlation_id).await
 }
-/// Initialize the response stream producer
-pub async fn start_response_producer() -> Result<Producer<impl Send + Sync>> {
-    // Load configuration
-    let config = Config::from_env()?;
-    info!("Configuration loaded successfully");
 
-    // Create environment
+pub async fn init_response_producer() -> Result<Producer<NoDedup>> {
+    let config = Config::from_env()?;
+
     let environment = Environment::builder()
         .host(&config.host)
         .port(config.port)
@@ -93,12 +85,8 @@ pub async fn start_response_producer() -> Result<Producer<impl Send + Sync>> {
         .build()
         .await?;
 
-    info!(
-        "Connected to RabbitMQ Stream at {}:{}",
-        config.host, config.port
-    );
+    info!("Connected to RabbitMQ Stream for Producer initialization");
 
-    // Create or verify stream exists
     match environment
         .stream_creator()
         .max_length(ByteCapacity::GB(5))
@@ -106,30 +94,27 @@ pub async fn start_response_producer() -> Result<Producer<impl Send + Sync>> {
         .create(&config.response_stream_name)
         .await
     {
-        Ok(_) => info!(
-            "Stream '{}' created successfully",
-            config.response_stream_name
-        ),
+        Ok(_) => info!("Stream '{}' created", config.response_stream_name),
+
         Err(StreamCreateError::Create {
-            status: ResponseCode::StreamAlreadyExists,
+            status: ResponseCode::StreamAlreadyExists | ResponseCode::PrecoditionFailed,
             ..
         }) => {
             info!(
-                "Stream '{}' already exists, using existing stream",
+                "Stream '{}' already exists (or has different properties); continuing",
                 config.response_stream_name
             );
         }
+
         Err(e) => return Err(e.into()),
     }
 
-    // Create producer for responses
     let producer = environment
         .producer()
-        .name("response_producer")
         .build(&config.response_stream_name)
         .await?;
 
-    info!("Response producer created successfully");
+    info!("Global Response Producer initialized");
 
     Ok(producer)
 }

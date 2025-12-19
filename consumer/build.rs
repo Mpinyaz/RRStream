@@ -12,6 +12,26 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         "#[derive(serde::Serialize, serde::Deserialize)]",
     );
 
+    config.type_attribute(
+        "task.Payload",
+        "#[derive(serde::Serialize, serde::Deserialize)]",
+    );
+    config.type_attribute(
+        "task.Payload.operation",
+        "#[derive(serde::Serialize, serde::Deserialize)]",
+    );
+    config.type_attribute(
+        "task.CreateTransferRequest",
+        "#[derive(serde::Serialize, serde::Deserialize)]",
+    );
+    config.type_attribute(
+        "task.CreateAccountRequest",
+        "#[derive(serde::Serialize, serde::Deserialize)]",
+    );
+    config.type_attribute(
+        "task.UInt128",
+        "#[derive(serde::Serialize, serde::Deserialize)]",
+    );
     // Compile the proto file
     config.compile_protos(&["../proto/task.proto"], &["../proto/"])?;
     Ok(())
