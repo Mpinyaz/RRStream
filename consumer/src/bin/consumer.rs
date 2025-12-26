@@ -25,10 +25,8 @@ impl MessageProcessor {
             decoded.task.id, decoded.correlation_id
         );
 
-        // Process the task
         let response = process_task(msg).await?;
 
-        // Send response with the decoded content type and correlation ID
         send_task_response(&response, decoded.content_type, decoded.correlation_id).await?;
 
         info!("Response sent for task_id={}", response.id);
@@ -36,8 +34,36 @@ impl MessageProcessor {
     }
 }
 
+/// Ensure both streams exist (called ONCE at startup)
+async fn ensure_streams(env: &Environment, base: &str) -> Result<()> {
+    let streams = [format!("{base}_requests"), format!("{base}_responses")];
+
+    for stream in streams {
+        match env
+            .stream_creator()
+            .max_length(ByteCapacity::GB(5))
+            .max_age(std::time::Duration::from_secs(3600 * 24 * 7))
+            .create(&stream)
+            .await
+        {
+            Ok(_) => info!("Stream '{}' created", stream),
+
+            Err(StreamCreateError::Create {
+                status: ResponseCode::StreamAlreadyExists | ResponseCode::PrecoditionFailed,
+                ..
+            }) => {
+                info!("Stream '{}' already exists", stream);
+            }
+
+            Err(e) => return Err(e.into()),
+        }
+    }
+
+    Ok(())
+}
+
 #[tokio::main]
-async fn main() -> Result<(), anyhow::Error> {
+async fn main() -> Result<()> {
     dotenv().ok();
     tracing_subscriber::fmt()
         .with_max_level(tracing::Level::INFO)
@@ -45,11 +71,9 @@ async fn main() -> Result<(), anyhow::Error> {
 
     info!("🚀 Starting RabbitMQ Stream Consumer");
 
-    // Load configuration
     let config = Config::from_env()?;
-    info!("Configuration loaded successfully");
+    info!("Configuration loaded");
 
-    // Create environment
     let environment = Environment::builder()
         .host(&config.host)
         .port(config.port)
@@ -63,65 +87,28 @@ async fn main() -> Result<(), anyhow::Error> {
         config.host, config.port
     );
 
-    // Create or verify request stream exists (for incoming tasks)
+    // 🔒 Ensure streams exist ONCE
+    ensure_streams(&environment, &config.stream_name).await?;
+
     let request_stream = format!("{}_requests", config.stream_name);
-    match environment
-        .stream_creator()
-        .max_length(ByteCapacity::GB(5))
-        .max_age(std::time::Duration::from_secs(3600 * 24 * 7))
-        .create(&request_stream)
-        .await
-    {
-        Ok(_) => info!("Request stream '{}' created successfully", request_stream),
-        Err(StreamCreateError::Create {
-            status: ResponseCode::StreamAlreadyExists,
-            ..
-        }) => {
-            info!(
-                "Request stream '{}' already exists, using existing stream",
-                request_stream
-            );
-        }
-        Err(e) => return Err(e.into()),
-    }
+    let consumer_name = "tigerbeetle_consumer";
 
-    // Create or verify response stream exists (for outgoing responses)
-    let response_stream = format!("{}_responses", config.stream_name);
-    match environment
-        .stream_creator()
-        .max_length(ByteCapacity::GB(5))
-        .max_age(std::time::Duration::from_secs(3600 * 24 * 7))
-        .create(&response_stream)
-        .await
-    {
-        Ok(_) => info!("Response stream '{}' created successfully", response_stream),
-        Err(StreamCreateError::Create {
-            status: ResponseCode::StreamAlreadyExists,
-            ..
-        }) => {
-            info!(
-                "Response stream '{}' already exists, using existing stream",
-                response_stream
-            );
-        }
-        Err(e) => return Err(e.into()),
-    }
-
-    // Create consumer for incoming tasks (from request stream)
     let mut consumer = environment
         .consumer()
-        .offset(OffsetSpecification::Next) // Start from next message
+        .name(consumer_name) // Enable offset tracking
+        .offset(OffsetSpecification::Next)
         .build(&request_stream)
         .await?;
 
-    info!("📡 Consumer started for stream: {}", request_stream);
+    info!(
+        "📡 Consumer '{}' started on stream: {}",
+        consumer_name, request_stream
+    );
 
     let handle = consumer.handle();
     let processor = MessageProcessor::new();
 
-    // Spawn consumer task
     let consumer_task = task::spawn(async move {
-        info!("Starting message processing loop");
         let mut message_count = 0u64;
 
         while let Some(delivery) = consumer.next().await {
@@ -133,38 +120,30 @@ async fn main() -> Result<(), anyhow::Error> {
                         error!("Failed to process message: {}", e);
                     }
 
-                    // Log progress every 10 messages
                     if message_count % 10 == 0 {
                         info!("Processed {} messages", message_count);
                     }
                 }
-                Err(e) => {
-                    error!("Error receiving message: {}", e);
-                }
+                Err(e) => error!("Error receiving message: {}", e),
             }
         }
 
-        info!(
-            "Consumer loop ended. Total messages processed: {}",
-            message_count
-        );
+        info!("Consumer stopped. Total processed: {}", message_count);
     });
 
-    info!("✅ System ready - waiting for messages...");
+    info!("✅ Ready — waiting for messages");
     info!("Press Ctrl+C to shutdown");
 
-    // Wait for shutdown signal
     tokio::select! {
         _ = signal::ctrl_c() => {
-            info!("Received Ctrl+C, shutting down gracefully...");
+            info!("Shutdown requested");
             if let Err(e) = handle.close().await {
                 warn!("Error closing consumer: {}", e);
             }
         }
-        result = consumer_task => {
-            match result {
-                Ok(_) => info!("Consumer task completed"),
-                Err(e) => error!("Consumer task failed: {}", e),
+        res = consumer_task => {
+            if let Err(e) = res {
+                error!("Consumer task failed: {}", e);
             }
         }
     }

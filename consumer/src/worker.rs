@@ -9,6 +9,7 @@ use rabbitmq_stream_client::types::Message as StreamMessage;
 use serde_json::to_vec as json_serialize;
 use std::str::FromStr;
 use std::time::{SystemTime, UNIX_EPOCH};
+use tigerbeetle_unofficial::account::Flags as AccFlags;
 use tigerbeetle_unofficial::transfer::Flags;
 use tigerbeetle_unofficial::{Account, Transfer};
 use tracing::{debug, field::debug, info, warn};
@@ -253,6 +254,8 @@ async fn handle_create_account(
         .map_err(|_| anyhow::anyhow!("Code {} too large for u16", account_req.code))?;
 
     let tb_client = get_tb_client().await?;
+
+    // Build account with all user data BEFORE creating it
     let mut account = Account::new(account_id, account_req.ledger, code);
 
     // Add optional user data
@@ -264,6 +267,15 @@ async fn handle_create_account(
     }
     if account_req.user_data_32 != 0 {
         account = account.with_user_data_32(account_req.user_data_32);
+    }
+    if account_req.flags != 0 {
+        let flags_u16: u16 = account_req
+            .flags
+            .try_into()
+            .map_err(|_| anyhow::anyhow!("Flags {} too large for u16", account_req.flags))?;
+        if let Some(flags) = AccFlags::from_bits(flags_u16) {
+            account = account.with_flags(flags);
+        }
     }
 
     tb_client
@@ -283,10 +295,10 @@ async fn handle_create_account(
         account_result: Some(crate::task::AccountResult {
             accounts: vec![crate::task::Account {
                 id: account_req.id,
-                debits_pending: None,
-                debits_posted: None,
-                credits_pending: None,
-                credits_posted: None,
+                debits_pending: Some(uint128_to_proto(0)),
+                debits_posted: Some(uint128_to_proto(0)),
+                credits_pending: Some(uint128_to_proto(0)),
+                credits_posted: Some(uint128_to_proto(0)),
                 user_data_128: account_req.user_data_128,
                 user_data_64: account_req.user_data_64,
                 user_data_32: account_req.user_data_32,
