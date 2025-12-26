@@ -18,9 +18,14 @@ uuid = { version = "1", features = ["serde", "v4"] }
 dotenv = "0.15.0"
 prost = "*"
 tonic-prost = "*"
-prost-types = "*"
+prost-types = { version = "*" }
 tonic = "0.14.2"
-tigerbeetle = "0.0.1"
-
+tigerbeetle-unofficial = "0.14.17"
+chrono = "*"
 [build-dependencies]
 tonic-prost-build = "*"
+
+
+[[example]]
+name = "test_producer"
+path = "src/examples/testproducer.rs"

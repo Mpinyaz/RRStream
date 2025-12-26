@@ -1,12 +1,23 @@
 {
-  "id": "task-001",
-  "task_type": "email_notification",
+  "id": "test-account-1",
+  "task_type": "create_account",
+  "content_type": "application/x-protobuf",
+  "created_at": 1735257600,
   "payload": {
-    "recipient": "user@example.com",
-    "subject": "Welcome",
-    "template": "welcome_email",
-    "priority": "high"
-  },
-  "priority": 1,
-  "retry_count": 3
+    "create_account": {
+      "id": {
+        "low": 12345,
+        "high": 0
+      },
+      "ledger": 1,
+      "code": 100,
+      "user_data_128": {
+        "low": 0,
+        "high": 0
+      },
+      "user_data_64": 0,
+      "user_data_32": 0,
+      "flags": 0
+    }
+  }
 }

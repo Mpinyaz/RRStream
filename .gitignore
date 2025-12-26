@@ -3,3 +3,5 @@
 target/
 consumer/target
 producer/logs/app.log
+db
+bin

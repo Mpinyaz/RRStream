@@ -37,6 +37,7 @@ func StartProducer() (*StreamProducer, error) {
 	username := os.Getenv("RABBITMQ_DEFAULT_USER")
 	password := os.Getenv("RABBITMQ_DEFAULT_PASS")
 	streamName := os.Getenv("RABBITMQ_STREAM_NAME")
+	streamName += "_requests"
 
 	env, err := stream.NewEnvironment(
 		stream.NewEnvironmentOptions().
@@ -56,7 +57,7 @@ func StartProducer() (*StreamProducer, error) {
 		return nil, fmt.Errorf("failed to declare stream: %w", err)
 	}
 	producerOptions := stream.NewProducerOptions().
-		SetProducerName(streamName)
+		SetProducerName("rrproducer")
 
 	producer, err := env.NewProducer(streamName, producerOptions)
 	if err != nil {

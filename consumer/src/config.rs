@@ -9,7 +9,6 @@ pub struct Config {
     pub password: String,
     pub stream_name: String,
     pub consumer_name: String,
-    pub response_stream_name: String,
     pub tb_address: String,
 }
 
@@ -30,9 +29,7 @@ impl Config {
                 .context("RABBITMQ_STREAM_NAME must be set")?,
             consumer_name: env::var("RABBITMQ_CONSUMER_NAME")
                 .unwrap_or_else(|_| "rust_consumer".to_string()),
-            response_stream_name: env::var("RABBITMQ_RESPONSE_STREAM_NAME")
-                .context("RABBITMQ_RESPONSE_STREAM_NAME must be set")?,
-            tb_address: env::var("TB_ADDRESS").context("TB_ADDRESS must be set")?,
+            tb_address: env::var("TB_ADDRESS").unwrap_or_else(|_| "3000".to_string()),
         })
     }
 }

@@ -21,6 +21,122 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// Account Flags
+type AccountFlags int32
+
+const (
+	AccountFlags_ACCOUNT_FLAGS_NONE                           AccountFlags = 0
+	AccountFlags_ACCOUNT_FLAGS_LINKED                         AccountFlags = 1
+	AccountFlags_ACCOUNT_FLAGS_DEBITS_MUST_NOT_EXCEED_CREDITS AccountFlags = 2
+	AccountFlags_ACCOUNT_FLAGS_CREDITS_MUST_NOT_EXCEED_DEBITS AccountFlags = 4
+)
+
+// Enum value maps for AccountFlags.
+var (
+	AccountFlags_name = map[int32]string{
+		0: "ACCOUNT_FLAGS_NONE",
+		1: "ACCOUNT_FLAGS_LINKED",
+		2: "ACCOUNT_FLAGS_DEBITS_MUST_NOT_EXCEED_CREDITS",
+		4: "ACCOUNT_FLAGS_CREDITS_MUST_NOT_EXCEED_DEBITS",
+	}
+	AccountFlags_value = map[string]int32{
+		"ACCOUNT_FLAGS_NONE":                           0,
+		"ACCOUNT_FLAGS_LINKED":                         1,
+		"ACCOUNT_FLAGS_DEBITS_MUST_NOT_EXCEED_CREDITS": 2,
+		"ACCOUNT_FLAGS_CREDITS_MUST_NOT_EXCEED_DEBITS": 4,
+	}
+)
+
+func (x AccountFlags) Enum() *AccountFlags {
+	p := new(AccountFlags)
+	*p = x
+	return p
+}
+
+func (x AccountFlags) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (AccountFlags) Descriptor() protoreflect.EnumDescriptor {
+	return file_task_proto_enumTypes[0].Descriptor()
+}
+
+func (AccountFlags) Type() protoreflect.EnumType {
+	return &file_task_proto_enumTypes[0]
+}
+
+func (x AccountFlags) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use AccountFlags.Descriptor instead.
+func (AccountFlags) EnumDescriptor() ([]byte, []int) {
+	return file_task_proto_rawDescGZIP(), []int{0}
+}
+
+// Transfer Flags
+type TransferFlags int32
+
+const (
+	TransferFlags_TRANSFER_FLAGS_NONE                  TransferFlags = 0
+	TransferFlags_TRANSFER_FLAGS_LINKED                TransferFlags = 1
+	TransferFlags_TRANSFER_FLAGS_PENDING               TransferFlags = 2
+	TransferFlags_TRANSFER_FLAGS_POST_PENDING_TRANSFER TransferFlags = 4
+	TransferFlags_TRANSFER_FLAGS_VOID_PENDING_TRANSFER TransferFlags = 8
+	TransferFlags_TRANSFER_FLAGS_BALANCING_DEBIT       TransferFlags = 16
+	TransferFlags_TRANSFER_FLAGS_BALANCING_CREDIT      TransferFlags = 32
+)
+
+// Enum value maps for TransferFlags.
+var (
+	TransferFlags_name = map[int32]string{
+		0:  "TRANSFER_FLAGS_NONE",
+		1:  "TRANSFER_FLAGS_LINKED",
+		2:  "TRANSFER_FLAGS_PENDING",
+		4:  "TRANSFER_FLAGS_POST_PENDING_TRANSFER",
+		8:  "TRANSFER_FLAGS_VOID_PENDING_TRANSFER",
+		16: "TRANSFER_FLAGS_BALANCING_DEBIT",
+		32: "TRANSFER_FLAGS_BALANCING_CREDIT",
+	}
+	TransferFlags_value = map[string]int32{
+		"TRANSFER_FLAGS_NONE":                  0,
+		"TRANSFER_FLAGS_LINKED":                1,
+		"TRANSFER_FLAGS_PENDING":               2,
+		"TRANSFER_FLAGS_POST_PENDING_TRANSFER": 4,
+		"TRANSFER_FLAGS_VOID_PENDING_TRANSFER": 8,
+		"TRANSFER_FLAGS_BALANCING_DEBIT":       16,
+		"TRANSFER_FLAGS_BALANCING_CREDIT":      32,
+	}
+)
+
+func (x TransferFlags) Enum() *TransferFlags {
+	p := new(TransferFlags)
+	*p = x
+	return p
+}
+
+func (x TransferFlags) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (TransferFlags) Descriptor() protoreflect.EnumDescriptor {
+	return file_task_proto_enumTypes[1].Descriptor()
+}
+
+func (TransferFlags) Type() protoreflect.EnumType {
+	return &file_task_proto_enumTypes[1]
+}
+
+func (x TransferFlags) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use TransferFlags.Descriptor instead.
+func (TransferFlags) EnumDescriptor() ([]byte, []int) {
+	return file_task_proto_rawDescGZIP(), []int{1}
+}
+
+// Transaction Status
 type TransactionStatus int32
 
 const (
@@ -60,11 +176,11 @@ func (x TransactionStatus) String() string {
 }
 
 func (TransactionStatus) Descriptor() protoreflect.EnumDescriptor {
-	return file_task_proto_enumTypes[0].Descriptor()
+	return file_task_proto_enumTypes[2].Descriptor()
 }
 
 func (TransactionStatus) Type() protoreflect.EnumType {
-	return &file_task_proto_enumTypes[0]
+	return &file_task_proto_enumTypes[2]
 }
 
 func (x TransactionStatus) Number() protoreflect.EnumNumber {
@@ -73,7 +189,7 @@ func (x TransactionStatus) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use TransactionStatus.Descriptor instead.
 func (TransactionStatus) EnumDescriptor() ([]byte, []int) {
-	return file_task_proto_rawDescGZIP(), []int{0}
+	return file_task_proto_rawDescGZIP(), []int{2}
 }
 
 type TaskRequest struct {
@@ -169,13 +285,16 @@ func (x *TaskRequest) GetRetryCount() int32 {
 }
 
 type TaskResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	TaskType      string                 `protobuf:"bytes,2,opt,name=task_type,json=taskType,proto3" json:"task_type,omitempty"`
-	Success       bool                   `protobuf:"varint,3,opt,name=success,proto3" json:"success,omitempty"`
-	Message       string                 `protobuf:"bytes,4,opt,name=message,proto3" json:"message,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Id             string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	TaskType       string                 `protobuf:"bytes,2,opt,name=task_type,json=taskType,proto3" json:"task_type,omitempty"`
+	Success        bool                   `protobuf:"varint,3,opt,name=success,proto3" json:"success,omitempty"`
+	Message        string                 `protobuf:"bytes,4,opt,name=message,proto3" json:"message,omitempty"`
+	AccountResult  *AccountResult         `protobuf:"bytes,5,opt,name=account_result,json=accountResult,proto3,oneof" json:"account_result,omitempty"`
+	TransferResult *TransferResult        `protobuf:"bytes,6,opt,name=transfer_result,json=transferResult,proto3,oneof" json:"transfer_result,omitempty"`
+	QueryResult    *QueryResult           `protobuf:"bytes,7,opt,name=query_result,json=queryResult,proto3,oneof" json:"query_result,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *TaskResponse) Reset() {
@@ -236,6 +355,27 @@ func (x *TaskResponse) GetMessage() string {
 	return ""
 }
 
+func (x *TaskResponse) GetAccountResult() *AccountResult {
+	if x != nil {
+		return x.AccountResult
+	}
+	return nil
+}
+
+func (x *TaskResponse) GetTransferResult() *TransferResult {
+	if x != nil {
+		return x.TransferResult
+	}
+	return nil
+}
+
+func (x *TaskResponse) GetQueryResult() *QueryResult {
+	if x != nil {
+		return x.QueryResult
+	}
+	return nil
+}
+
 type UInt128 struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Low           uint64                 `protobuf:"fixed64,1,opt,name=low,proto3" json:"low,omitempty"`
@@ -288,6 +428,7 @@ func (x *UInt128) GetHigh() uint64 {
 	return 0
 }
 
+// Account Operations
 type CreateAccountRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            *UInt128               `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -380,22 +521,384 @@ func (x *CreateAccountRequest) GetFlags() uint32 {
 	return 0
 }
 
+type CreateAccountBatchRequest struct {
+	state         protoimpl.MessageState  `protogen:"open.v1"`
+	Accounts      []*CreateAccountRequest `protobuf:"bytes,1,rep,name=accounts,proto3" json:"accounts,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateAccountBatchRequest) Reset() {
+	*x = CreateAccountBatchRequest{}
+	mi := &file_task_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateAccountBatchRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateAccountBatchRequest) ProtoMessage() {}
+
+func (x *CreateAccountBatchRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_task_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateAccountBatchRequest.ProtoReflect.Descriptor instead.
+func (*CreateAccountBatchRequest) Descriptor() ([]byte, []int) {
+	return file_task_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *CreateAccountBatchRequest) GetAccounts() []*CreateAccountRequest {
+	if x != nil {
+		return x.Accounts
+	}
+	return nil
+}
+
+type LookupAccountRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AccountIds    []*UInt128             `protobuf:"bytes,1,rep,name=account_ids,json=accountIds,proto3" json:"account_ids,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LookupAccountRequest) Reset() {
+	*x = LookupAccountRequest{}
+	mi := &file_task_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LookupAccountRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LookupAccountRequest) ProtoMessage() {}
+
+func (x *LookupAccountRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_task_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LookupAccountRequest.ProtoReflect.Descriptor instead.
+func (*LookupAccountRequest) Descriptor() ([]byte, []int) {
+	return file_task_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *LookupAccountRequest) GetAccountIds() []*UInt128 {
+	if x != nil {
+		return x.AccountIds
+	}
+	return nil
+}
+
+type QueryAccountRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Limit         uint32                 `protobuf:"varint,1,opt,name=limit,proto3" json:"limit,omitempty"`
+	UserData_32   *uint32                `protobuf:"varint,2,opt,name=user_data_32,json=userData32,proto3,oneof" json:"user_data_32,omitempty"`
+	UserData_64   *uint64                `protobuf:"varint,3,opt,name=user_data_64,json=userData64,proto3,oneof" json:"user_data_64,omitempty"`
+	UserData_128  *UInt128               `protobuf:"bytes,4,opt,name=user_data_128,json=userData128,proto3,oneof" json:"user_data_128,omitempty"`
+	Code          *uint32                `protobuf:"varint,5,opt,name=code,proto3,oneof" json:"code,omitempty"`
+	Ledger        *uint32                `protobuf:"varint,6,opt,name=ledger,proto3,oneof" json:"ledger,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *QueryAccountRequest) Reset() {
+	*x = QueryAccountRequest{}
+	mi := &file_task_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *QueryAccountRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*QueryAccountRequest) ProtoMessage() {}
+
+func (x *QueryAccountRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_task_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use QueryAccountRequest.ProtoReflect.Descriptor instead.
+func (*QueryAccountRequest) Descriptor() ([]byte, []int) {
+	return file_task_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *QueryAccountRequest) GetLimit() uint32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+func (x *QueryAccountRequest) GetUserData_32() uint32 {
+	if x != nil && x.UserData_32 != nil {
+		return *x.UserData_32
+	}
+	return 0
+}
+
+func (x *QueryAccountRequest) GetUserData_64() uint64 {
+	if x != nil && x.UserData_64 != nil {
+		return *x.UserData_64
+	}
+	return 0
+}
+
+func (x *QueryAccountRequest) GetUserData_128() *UInt128 {
+	if x != nil {
+		return x.UserData_128
+	}
+	return nil
+}
+
+func (x *QueryAccountRequest) GetCode() uint32 {
+	if x != nil && x.Code != nil {
+		return *x.Code
+	}
+	return 0
+}
+
+func (x *QueryAccountRequest) GetLedger() uint32 {
+	if x != nil && x.Ledger != nil {
+		return *x.Ledger
+	}
+	return 0
+}
+
+type Account struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Id             *UInt128               `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	DebitsPending  *UInt128               `protobuf:"bytes,2,opt,name=debits_pending,json=debitsPending,proto3" json:"debits_pending,omitempty"`
+	DebitsPosted   *UInt128               `protobuf:"bytes,3,opt,name=debits_posted,json=debitsPosted,proto3" json:"debits_posted,omitempty"`
+	CreditsPending *UInt128               `protobuf:"bytes,4,opt,name=credits_pending,json=creditsPending,proto3" json:"credits_pending,omitempty"`
+	CreditsPosted  *UInt128               `protobuf:"bytes,5,opt,name=credits_posted,json=creditsPosted,proto3" json:"credits_posted,omitempty"`
+	UserData_128   *UInt128               `protobuf:"bytes,6,opt,name=user_data_128,json=userData128,proto3" json:"user_data_128,omitempty"`
+	UserData_64    uint64                 `protobuf:"varint,7,opt,name=user_data_64,json=userData64,proto3" json:"user_data_64,omitempty"`
+	UserData_32    uint32                 `protobuf:"varint,8,opt,name=user_data_32,json=userData32,proto3" json:"user_data_32,omitempty"`
+	Ledger         uint32                 `protobuf:"varint,9,opt,name=ledger,proto3" json:"ledger,omitempty"`
+	Code           uint32                 `protobuf:"varint,10,opt,name=code,proto3" json:"code,omitempty"`
+	Flags          uint32                 `protobuf:"varint,11,opt,name=flags,proto3" json:"flags,omitempty"`
+	Timestamp      uint64                 `protobuf:"varint,12,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *Account) Reset() {
+	*x = Account{}
+	mi := &file_task_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Account) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Account) ProtoMessage() {}
+
+func (x *Account) ProtoReflect() protoreflect.Message {
+	mi := &file_task_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Account.ProtoReflect.Descriptor instead.
+func (*Account) Descriptor() ([]byte, []int) {
+	return file_task_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *Account) GetId() *UInt128 {
+	if x != nil {
+		return x.Id
+	}
+	return nil
+}
+
+func (x *Account) GetDebitsPending() *UInt128 {
+	if x != nil {
+		return x.DebitsPending
+	}
+	return nil
+}
+
+func (x *Account) GetDebitsPosted() *UInt128 {
+	if x != nil {
+		return x.DebitsPosted
+	}
+	return nil
+}
+
+func (x *Account) GetCreditsPending() *UInt128 {
+	if x != nil {
+		return x.CreditsPending
+	}
+	return nil
+}
+
+func (x *Account) GetCreditsPosted() *UInt128 {
+	if x != nil {
+		return x.CreditsPosted
+	}
+	return nil
+}
+
+func (x *Account) GetUserData_128() *UInt128 {
+	if x != nil {
+		return x.UserData_128
+	}
+	return nil
+}
+
+func (x *Account) GetUserData_64() uint64 {
+	if x != nil {
+		return x.UserData_64
+	}
+	return 0
+}
+
+func (x *Account) GetUserData_32() uint32 {
+	if x != nil {
+		return x.UserData_32
+	}
+	return 0
+}
+
+func (x *Account) GetLedger() uint32 {
+	if x != nil {
+		return x.Ledger
+	}
+	return 0
+}
+
+func (x *Account) GetCode() uint32 {
+	if x != nil {
+		return x.Code
+	}
+	return 0
+}
+
+func (x *Account) GetFlags() uint32 {
+	if x != nil {
+		return x.Flags
+	}
+	return 0
+}
+
+func (x *Account) GetTimestamp() uint64 {
+	if x != nil {
+		return x.Timestamp
+	}
+	return 0
+}
+
+type AccountResult struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Accounts      []*Account             `protobuf:"bytes,1,rep,name=accounts,proto3" json:"accounts,omitempty"`
+	Count         int32                  `protobuf:"varint,2,opt,name=count,proto3" json:"count,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AccountResult) Reset() {
+	*x = AccountResult{}
+	mi := &file_task_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AccountResult) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AccountResult) ProtoMessage() {}
+
+func (x *AccountResult) ProtoReflect() protoreflect.Message {
+	mi := &file_task_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AccountResult.ProtoReflect.Descriptor instead.
+func (*AccountResult) Descriptor() ([]byte, []int) {
+	return file_task_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *AccountResult) GetAccounts() []*Account {
+	if x != nil {
+		return x.Accounts
+	}
+	return nil
+}
+
+func (x *AccountResult) GetCount() int32 {
+	if x != nil {
+		return x.Count
+	}
+	return 0
+}
+
+// Transfer Operations
 type CreateTransferRequest struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
 	Id              *UInt128               `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	DebitAccountId  *UInt128               `protobuf:"bytes,2,opt,name=debit_account_id,json=debitAccountId,proto3" json:"debit_account_id,omitempty"`
 	CreditAccountId *UInt128               `protobuf:"bytes,3,opt,name=credit_account_id,json=creditAccountId,proto3" json:"credit_account_id,omitempty"`
-	Amount          *UInt128               `protobuf:"bytes,4,opt,name=amount,proto3" json:"amount,omitempty"`
-	Ledger          uint32                 `protobuf:"varint,5,opt,name=ledger,proto3" json:"ledger,omitempty"`
-	Code            uint32                 `protobuf:"varint,6,opt,name=code,proto3" json:"code,omitempty"`
-	Flags           uint32                 `protobuf:"varint,7,opt,name=flags,proto3" json:"flags,omitempty"`
+	Amount          *UInt128               `protobuf:"bytes,4,opt,name=amount,proto3" json:"amount,omitempty"` // Kept as UInt128
+	PendingId       *UInt128               `protobuf:"bytes,5,opt,name=pending_id,json=pendingId,proto3" json:"pending_id,omitempty"`
+	UserData_128    *UInt128               `protobuf:"bytes,6,opt,name=user_data_128,json=userData128,proto3" json:"user_data_128,omitempty"`
+	UserData_64     uint64                 `protobuf:"varint,7,opt,name=user_data_64,json=userData64,proto3" json:"user_data_64,omitempty"`
+	UserData_32     uint32                 `protobuf:"varint,8,opt,name=user_data_32,json=userData32,proto3" json:"user_data_32,omitempty"`
+	Timeout         uint64                 `protobuf:"varint,9,opt,name=timeout,proto3" json:"timeout,omitempty"`
+	Ledger          uint32                 `protobuf:"varint,10,opt,name=ledger,proto3" json:"ledger,omitempty"`
+	Code            uint32                 `protobuf:"varint,11,opt,name=code,proto3" json:"code,omitempty"`
+	Flags           uint32                 `protobuf:"varint,12,opt,name=flags,proto3" json:"flags,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
 
 func (x *CreateTransferRequest) Reset() {
 	*x = CreateTransferRequest{}
-	mi := &file_task_proto_msgTypes[4]
+	mi := &file_task_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -407,7 +910,7 @@ func (x *CreateTransferRequest) String() string {
 func (*CreateTransferRequest) ProtoMessage() {}
 
 func (x *CreateTransferRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_task_proto_msgTypes[4]
+	mi := &file_task_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -420,7 +923,7 @@ func (x *CreateTransferRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateTransferRequest.ProtoReflect.Descriptor instead.
 func (*CreateTransferRequest) Descriptor() ([]byte, []int) {
-	return file_task_proto_rawDescGZIP(), []int{4}
+	return file_task_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *CreateTransferRequest) GetId() *UInt128 {
@@ -451,6 +954,41 @@ func (x *CreateTransferRequest) GetAmount() *UInt128 {
 	return nil
 }
 
+func (x *CreateTransferRequest) GetPendingId() *UInt128 {
+	if x != nil {
+		return x.PendingId
+	}
+	return nil
+}
+
+func (x *CreateTransferRequest) GetUserData_128() *UInt128 {
+	if x != nil {
+		return x.UserData_128
+	}
+	return nil
+}
+
+func (x *CreateTransferRequest) GetUserData_64() uint64 {
+	if x != nil {
+		return x.UserData_64
+	}
+	return 0
+}
+
+func (x *CreateTransferRequest) GetUserData_32() uint32 {
+	if x != nil {
+		return x.UserData_32
+	}
+	return 0
+}
+
+func (x *CreateTransferRequest) GetTimeout() uint64 {
+	if x != nil {
+		return x.Timeout
+	}
+	return 0
+}
+
 func (x *CreateTransferRequest) GetLedger() uint32 {
 	if x != nil {
 		return x.Ledger
@@ -472,12 +1010,597 @@ func (x *CreateTransferRequest) GetFlags() uint32 {
 	return 0
 }
 
+type CreateTransferBatchRequest struct {
+	state         protoimpl.MessageState   `protogen:"open.v1"`
+	Transfers     []*CreateTransferRequest `protobuf:"bytes,1,rep,name=transfers,proto3" json:"transfers,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateTransferBatchRequest) Reset() {
+	*x = CreateTransferBatchRequest{}
+	mi := &file_task_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateTransferBatchRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateTransferBatchRequest) ProtoMessage() {}
+
+func (x *CreateTransferBatchRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_task_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateTransferBatchRequest.ProtoReflect.Descriptor instead.
+func (*CreateTransferBatchRequest) Descriptor() ([]byte, []int) {
+	return file_task_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *CreateTransferBatchRequest) GetTransfers() []*CreateTransferRequest {
+	if x != nil {
+		return x.Transfers
+	}
+	return nil
+}
+
+type LookupTransferRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TransferIds   []*UInt128             `protobuf:"bytes,1,rep,name=transfer_ids,json=transferIds,proto3" json:"transfer_ids,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LookupTransferRequest) Reset() {
+	*x = LookupTransferRequest{}
+	mi := &file_task_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LookupTransferRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LookupTransferRequest) ProtoMessage() {}
+
+func (x *LookupTransferRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_task_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LookupTransferRequest.ProtoReflect.Descriptor instead.
+func (*LookupTransferRequest) Descriptor() ([]byte, []int) {
+	return file_task_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *LookupTransferRequest) GetTransferIds() []*UInt128 {
+	if x != nil {
+		return x.TransferIds
+	}
+	return nil
+}
+
+type QueryTransferRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Limit         uint32                 `protobuf:"varint,1,opt,name=limit,proto3" json:"limit,omitempty"`
+	UserData_32   *uint32                `protobuf:"varint,2,opt,name=user_data_32,json=userData32,proto3,oneof" json:"user_data_32,omitempty"`
+	UserData_64   *uint64                `protobuf:"varint,3,opt,name=user_data_64,json=userData64,proto3,oneof" json:"user_data_64,omitempty"`
+	UserData_128  *UInt128               `protobuf:"bytes,4,opt,name=user_data_128,json=userData128,proto3,oneof" json:"user_data_128,omitempty"`
+	Code          *uint32                `protobuf:"varint,5,opt,name=code,proto3,oneof" json:"code,omitempty"`
+	Ledger        *uint32                `protobuf:"varint,6,opt,name=ledger,proto3,oneof" json:"ledger,omitempty"`
+	AccountId     *UInt128               `protobuf:"bytes,7,opt,name=account_id,json=accountId,proto3,oneof" json:"account_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *QueryTransferRequest) Reset() {
+	*x = QueryTransferRequest{}
+	mi := &file_task_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *QueryTransferRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*QueryTransferRequest) ProtoMessage() {}
+
+func (x *QueryTransferRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_task_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use QueryTransferRequest.ProtoReflect.Descriptor instead.
+func (*QueryTransferRequest) Descriptor() ([]byte, []int) {
+	return file_task_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *QueryTransferRequest) GetLimit() uint32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+func (x *QueryTransferRequest) GetUserData_32() uint32 {
+	if x != nil && x.UserData_32 != nil {
+		return *x.UserData_32
+	}
+	return 0
+}
+
+func (x *QueryTransferRequest) GetUserData_64() uint64 {
+	if x != nil && x.UserData_64 != nil {
+		return *x.UserData_64
+	}
+	return 0
+}
+
+func (x *QueryTransferRequest) GetUserData_128() *UInt128 {
+	if x != nil {
+		return x.UserData_128
+	}
+	return nil
+}
+
+func (x *QueryTransferRequest) GetCode() uint32 {
+	if x != nil && x.Code != nil {
+		return *x.Code
+	}
+	return 0
+}
+
+func (x *QueryTransferRequest) GetLedger() uint32 {
+	if x != nil && x.Ledger != nil {
+		return *x.Ledger
+	}
+	return 0
+}
+
+func (x *QueryTransferRequest) GetAccountId() *UInt128 {
+	if x != nil {
+		return x.AccountId
+	}
+	return nil
+}
+
+type Transfer struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	Id              *UInt128               `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	DebitAccountId  *UInt128               `protobuf:"bytes,2,opt,name=debit_account_id,json=debitAccountId,proto3" json:"debit_account_id,omitempty"`
+	CreditAccountId *UInt128               `protobuf:"bytes,3,opt,name=credit_account_id,json=creditAccountId,proto3" json:"credit_account_id,omitempty"`
+	Amount          *UInt128               `protobuf:"bytes,4,opt,name=amount,proto3" json:"amount,omitempty"` // Kept as UInt128
+	PendingId       *UInt128               `protobuf:"bytes,5,opt,name=pending_id,json=pendingId,proto3" json:"pending_id,omitempty"`
+	UserData_128    *UInt128               `protobuf:"bytes,6,opt,name=user_data_128,json=userData128,proto3" json:"user_data_128,omitempty"`
+	UserData_64     uint64                 `protobuf:"varint,7,opt,name=user_data_64,json=userData64,proto3" json:"user_data_64,omitempty"`
+	UserData_32     uint32                 `protobuf:"varint,8,opt,name=user_data_32,json=userData32,proto3" json:"user_data_32,omitempty"`
+	Timeout         uint64                 `protobuf:"varint,9,opt,name=timeout,proto3" json:"timeout,omitempty"`
+	Ledger          uint32                 `protobuf:"varint,10,opt,name=ledger,proto3" json:"ledger,omitempty"`
+	Code            uint32                 `protobuf:"varint,11,opt,name=code,proto3" json:"code,omitempty"`
+	Flags           uint32                 `protobuf:"varint,12,opt,name=flags,proto3" json:"flags,omitempty"`
+	Timestamp       uint64                 `protobuf:"varint,13,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *Transfer) Reset() {
+	*x = Transfer{}
+	mi := &file_task_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Transfer) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Transfer) ProtoMessage() {}
+
+func (x *Transfer) ProtoReflect() protoreflect.Message {
+	mi := &file_task_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Transfer.ProtoReflect.Descriptor instead.
+func (*Transfer) Descriptor() ([]byte, []int) {
+	return file_task_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *Transfer) GetId() *UInt128 {
+	if x != nil {
+		return x.Id
+	}
+	return nil
+}
+
+func (x *Transfer) GetDebitAccountId() *UInt128 {
+	if x != nil {
+		return x.DebitAccountId
+	}
+	return nil
+}
+
+func (x *Transfer) GetCreditAccountId() *UInt128 {
+	if x != nil {
+		return x.CreditAccountId
+	}
+	return nil
+}
+
+func (x *Transfer) GetAmount() *UInt128 {
+	if x != nil {
+		return x.Amount
+	}
+	return nil
+}
+
+func (x *Transfer) GetPendingId() *UInt128 {
+	if x != nil {
+		return x.PendingId
+	}
+	return nil
+}
+
+func (x *Transfer) GetUserData_128() *UInt128 {
+	if x != nil {
+		return x.UserData_128
+	}
+	return nil
+}
+
+func (x *Transfer) GetUserData_64() uint64 {
+	if x != nil {
+		return x.UserData_64
+	}
+	return 0
+}
+
+func (x *Transfer) GetUserData_32() uint32 {
+	if x != nil {
+		return x.UserData_32
+	}
+	return 0
+}
+
+func (x *Transfer) GetTimeout() uint64 {
+	if x != nil {
+		return x.Timeout
+	}
+	return 0
+}
+
+func (x *Transfer) GetLedger() uint32 {
+	if x != nil {
+		return x.Ledger
+	}
+	return 0
+}
+
+func (x *Transfer) GetCode() uint32 {
+	if x != nil {
+		return x.Code
+	}
+	return 0
+}
+
+func (x *Transfer) GetFlags() uint32 {
+	if x != nil {
+		return x.Flags
+	}
+	return 0
+}
+
+func (x *Transfer) GetTimestamp() uint64 {
+	if x != nil {
+		return x.Timestamp
+	}
+	return 0
+}
+
+type TransferResult struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Transfers     []*Transfer            `protobuf:"bytes,1,rep,name=transfers,proto3" json:"transfers,omitempty"`
+	Count         int32                  `protobuf:"varint,2,opt,name=count,proto3" json:"count,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TransferResult) Reset() {
+	*x = TransferResult{}
+	mi := &file_task_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TransferResult) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TransferResult) ProtoMessage() {}
+
+func (x *TransferResult) ProtoReflect() protoreflect.Message {
+	mi := &file_task_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TransferResult.ProtoReflect.Descriptor instead.
+func (*TransferResult) Descriptor() ([]byte, []int) {
+	return file_task_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *TransferResult) GetTransfers() []*Transfer {
+	if x != nil {
+		return x.Transfers
+	}
+	return nil
+}
+
+func (x *TransferResult) GetCount() int32 {
+	if x != nil {
+		return x.Count
+	}
+	return 0
+}
+
+// Pending Transfer Operations
+type PostPendingTransferRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	PendingId     *UInt128               `protobuf:"bytes,1,opt,name=pending_id,json=pendingId,proto3" json:"pending_id,omitempty"`
+	Ledger        uint32                 `protobuf:"varint,2,opt,name=ledger,proto3" json:"ledger,omitempty"`
+	Code          uint32                 `protobuf:"varint,3,opt,name=code,proto3" json:"code,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PostPendingTransferRequest) Reset() {
+	*x = PostPendingTransferRequest{}
+	mi := &file_task_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PostPendingTransferRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PostPendingTransferRequest) ProtoMessage() {}
+
+func (x *PostPendingTransferRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_task_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PostPendingTransferRequest.ProtoReflect.Descriptor instead.
+func (*PostPendingTransferRequest) Descriptor() ([]byte, []int) {
+	return file_task_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *PostPendingTransferRequest) GetPendingId() *UInt128 {
+	if x != nil {
+		return x.PendingId
+	}
+	return nil
+}
+
+func (x *PostPendingTransferRequest) GetLedger() uint32 {
+	if x != nil {
+		return x.Ledger
+	}
+	return 0
+}
+
+func (x *PostPendingTransferRequest) GetCode() uint32 {
+	if x != nil {
+		return x.Code
+	}
+	return 0
+}
+
+type VoidPendingTransferRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	PendingId     *UInt128               `protobuf:"bytes,1,opt,name=pending_id,json=pendingId,proto3" json:"pending_id,omitempty"`
+	Ledger        uint32                 `protobuf:"varint,2,opt,name=ledger,proto3" json:"ledger,omitempty"`
+	Code          uint32                 `protobuf:"varint,3,opt,name=code,proto3" json:"code,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *VoidPendingTransferRequest) Reset() {
+	*x = VoidPendingTransferRequest{}
+	mi := &file_task_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *VoidPendingTransferRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*VoidPendingTransferRequest) ProtoMessage() {}
+
+func (x *VoidPendingTransferRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_task_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use VoidPendingTransferRequest.ProtoReflect.Descriptor instead.
+func (*VoidPendingTransferRequest) Descriptor() ([]byte, []int) {
+	return file_task_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *VoidPendingTransferRequest) GetPendingId() *UInt128 {
+	if x != nil {
+		return x.PendingId
+	}
+	return nil
+}
+
+func (x *VoidPendingTransferRequest) GetLedger() uint32 {
+	if x != nil {
+		return x.Ledger
+	}
+	return 0
+}
+
+func (x *VoidPendingTransferRequest) GetCode() uint32 {
+	if x != nil {
+		return x.Code
+	}
+	return 0
+}
+
+// Query Results
+type QueryResult struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Types that are valid to be assigned to Result:
+	//
+	//	*QueryResult_Accounts
+	//	*QueryResult_Transfers
+	Result        isQueryResult_Result `protobuf_oneof:"result"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *QueryResult) Reset() {
+	*x = QueryResult{}
+	mi := &file_task_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *QueryResult) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*QueryResult) ProtoMessage() {}
+
+func (x *QueryResult) ProtoReflect() protoreflect.Message {
+	mi := &file_task_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use QueryResult.ProtoReflect.Descriptor instead.
+func (*QueryResult) Descriptor() ([]byte, []int) {
+	return file_task_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *QueryResult) GetResult() isQueryResult_Result {
+	if x != nil {
+		return x.Result
+	}
+	return nil
+}
+
+func (x *QueryResult) GetAccounts() *AccountResult {
+	if x != nil {
+		if x, ok := x.Result.(*QueryResult_Accounts); ok {
+			return x.Accounts
+		}
+	}
+	return nil
+}
+
+func (x *QueryResult) GetTransfers() *TransferResult {
+	if x != nil {
+		if x, ok := x.Result.(*QueryResult_Transfers); ok {
+			return x.Transfers
+		}
+	}
+	return nil
+}
+
+type isQueryResult_Result interface {
+	isQueryResult_Result()
+}
+
+type QueryResult_Accounts struct {
+	Accounts *AccountResult `protobuf:"bytes,1,opt,name=accounts,proto3,oneof"`
+}
+
+type QueryResult_Transfers struct {
+	Transfers *TransferResult `protobuf:"bytes,2,opt,name=transfers,proto3,oneof"`
+}
+
+func (*QueryResult_Accounts) isQueryResult_Result() {}
+
+func (*QueryResult_Transfers) isQueryResult_Result() {}
+
+// Payload with all operations
 type Payload struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Types that are valid to be assigned to Operation:
 	//
 	//	*Payload_CreateAccount
+	//	*Payload_CreateAccountBatch
+	//	*Payload_LookupAccount
+	//	*Payload_QueryAccount
 	//	*Payload_CreateTransfer
+	//	*Payload_CreateTransferBatch
+	//	*Payload_LookupTransfer
+	//	*Payload_QueryTransfer
+	//	*Payload_PostPendingTransfer
+	//	*Payload_VoidPendingTransfer
 	Operation     isPayload_Operation `protobuf_oneof:"operation"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -485,7 +1608,7 @@ type Payload struct {
 
 func (x *Payload) Reset() {
 	*x = Payload{}
-	mi := &file_task_proto_msgTypes[5]
+	mi := &file_task_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -497,7 +1620,7 @@ func (x *Payload) String() string {
 func (*Payload) ProtoMessage() {}
 
 func (x *Payload) ProtoReflect() protoreflect.Message {
-	mi := &file_task_proto_msgTypes[5]
+	mi := &file_task_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -510,7 +1633,7 @@ func (x *Payload) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Payload.ProtoReflect.Descriptor instead.
 func (*Payload) Descriptor() ([]byte, []int) {
-	return file_task_proto_rawDescGZIP(), []int{5}
+	return file_task_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *Payload) GetOperation() isPayload_Operation {
@@ -529,10 +1652,82 @@ func (x *Payload) GetCreateAccount() *CreateAccountRequest {
 	return nil
 }
 
+func (x *Payload) GetCreateAccountBatch() *CreateAccountBatchRequest {
+	if x != nil {
+		if x, ok := x.Operation.(*Payload_CreateAccountBatch); ok {
+			return x.CreateAccountBatch
+		}
+	}
+	return nil
+}
+
+func (x *Payload) GetLookupAccount() *LookupAccountRequest {
+	if x != nil {
+		if x, ok := x.Operation.(*Payload_LookupAccount); ok {
+			return x.LookupAccount
+		}
+	}
+	return nil
+}
+
+func (x *Payload) GetQueryAccount() *QueryAccountRequest {
+	if x != nil {
+		if x, ok := x.Operation.(*Payload_QueryAccount); ok {
+			return x.QueryAccount
+		}
+	}
+	return nil
+}
+
 func (x *Payload) GetCreateTransfer() *CreateTransferRequest {
 	if x != nil {
 		if x, ok := x.Operation.(*Payload_CreateTransfer); ok {
 			return x.CreateTransfer
+		}
+	}
+	return nil
+}
+
+func (x *Payload) GetCreateTransferBatch() *CreateTransferBatchRequest {
+	if x != nil {
+		if x, ok := x.Operation.(*Payload_CreateTransferBatch); ok {
+			return x.CreateTransferBatch
+		}
+	}
+	return nil
+}
+
+func (x *Payload) GetLookupTransfer() *LookupTransferRequest {
+	if x != nil {
+		if x, ok := x.Operation.(*Payload_LookupTransfer); ok {
+			return x.LookupTransfer
+		}
+	}
+	return nil
+}
+
+func (x *Payload) GetQueryTransfer() *QueryTransferRequest {
+	if x != nil {
+		if x, ok := x.Operation.(*Payload_QueryTransfer); ok {
+			return x.QueryTransfer
+		}
+	}
+	return nil
+}
+
+func (x *Payload) GetPostPendingTransfer() *PostPendingTransferRequest {
+	if x != nil {
+		if x, ok := x.Operation.(*Payload_PostPendingTransfer); ok {
+			return x.PostPendingTransfer
+		}
+	}
+	return nil
+}
+
+func (x *Payload) GetVoidPendingTransfer() *VoidPendingTransferRequest {
+	if x != nil {
+		if x, ok := x.Operation.(*Payload_VoidPendingTransfer); ok {
+			return x.VoidPendingTransfer
 		}
 	}
 	return nil
@@ -546,13 +1741,61 @@ type Payload_CreateAccount struct {
 	CreateAccount *CreateAccountRequest `protobuf:"bytes,1,opt,name=create_account,json=createAccount,proto3,oneof"`
 }
 
+type Payload_CreateAccountBatch struct {
+	CreateAccountBatch *CreateAccountBatchRequest `protobuf:"bytes,2,opt,name=create_account_batch,json=createAccountBatch,proto3,oneof"`
+}
+
+type Payload_LookupAccount struct {
+	LookupAccount *LookupAccountRequest `protobuf:"bytes,3,opt,name=lookup_account,json=lookupAccount,proto3,oneof"`
+}
+
+type Payload_QueryAccount struct {
+	QueryAccount *QueryAccountRequest `protobuf:"bytes,4,opt,name=query_account,json=queryAccount,proto3,oneof"`
+}
+
 type Payload_CreateTransfer struct {
-	CreateTransfer *CreateTransferRequest `protobuf:"bytes,2,opt,name=create_transfer,json=createTransfer,proto3,oneof"`
+	CreateTransfer *CreateTransferRequest `protobuf:"bytes,5,opt,name=create_transfer,json=createTransfer,proto3,oneof"`
+}
+
+type Payload_CreateTransferBatch struct {
+	CreateTransferBatch *CreateTransferBatchRequest `protobuf:"bytes,6,opt,name=create_transfer_batch,json=createTransferBatch,proto3,oneof"`
+}
+
+type Payload_LookupTransfer struct {
+	LookupTransfer *LookupTransferRequest `protobuf:"bytes,7,opt,name=lookup_transfer,json=lookupTransfer,proto3,oneof"`
+}
+
+type Payload_QueryTransfer struct {
+	QueryTransfer *QueryTransferRequest `protobuf:"bytes,8,opt,name=query_transfer,json=queryTransfer,proto3,oneof"`
+}
+
+type Payload_PostPendingTransfer struct {
+	PostPendingTransfer *PostPendingTransferRequest `protobuf:"bytes,9,opt,name=post_pending_transfer,json=postPendingTransfer,proto3,oneof"`
+}
+
+type Payload_VoidPendingTransfer struct {
+	VoidPendingTransfer *VoidPendingTransferRequest `protobuf:"bytes,10,opt,name=void_pending_transfer,json=voidPendingTransfer,proto3,oneof"`
 }
 
 func (*Payload_CreateAccount) isPayload_Operation() {}
 
+func (*Payload_CreateAccountBatch) isPayload_Operation() {}
+
+func (*Payload_LookupAccount) isPayload_Operation() {}
+
+func (*Payload_QueryAccount) isPayload_Operation() {}
+
 func (*Payload_CreateTransfer) isPayload_Operation() {}
+
+func (*Payload_CreateTransferBatch) isPayload_Operation() {}
+
+func (*Payload_LookupTransfer) isPayload_Operation() {}
+
+func (*Payload_QueryTransfer) isPayload_Operation() {}
+
+func (*Payload_PostPendingTransfer) isPayload_Operation() {}
+
+func (*Payload_VoidPendingTransfer) isPayload_Operation() {}
 
 var File_task_proto protoreflect.FileDescriptor
 
@@ -571,12 +1814,18 @@ const file_task_proto_rawDesc = "" +
 	"\vretry_count\x18\a \x01(\x05H\x01R\n" +
 	"retryCount\x88\x01\x01B\v\n" +
 	"\t_priorityB\x0e\n" +
-	"\f_retry_count\"o\n" +
+	"\f_retry_count\"\xe7\x02\n" +
 	"\fTaskResponse\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1b\n" +
 	"\ttask_type\x18\x02 \x01(\tR\btaskType\x12\x18\n" +
 	"\asuccess\x18\x03 \x01(\bR\asuccess\x12\x18\n" +
-	"\amessage\x18\x04 \x01(\tR\amessage\"/\n" +
+	"\amessage\x18\x04 \x01(\tR\amessage\x12?\n" +
+	"\x0eaccount_result\x18\x05 \x01(\v2\x13.task.AccountResultH\x00R\raccountResult\x88\x01\x01\x12B\n" +
+	"\x0ftransfer_result\x18\x06 \x01(\v2\x14.task.TransferResultH\x01R\x0etransferResult\x88\x01\x01\x129\n" +
+	"\fquery_result\x18\a \x01(\v2\x11.task.QueryResultH\x02R\vqueryResult\x88\x01\x01B\x11\n" +
+	"\x0f_account_resultB\x12\n" +
+	"\x10_transfer_resultB\x0f\n" +
+	"\r_query_result\"/\n" +
 	"\aUInt128\x12\x10\n" +
 	"\x03low\x18\x01 \x01(\x06R\x03low\x12\x12\n" +
 	"\x04high\x18\x02 \x01(\x06R\x04high\"\xee\x01\n" +
@@ -589,19 +1838,144 @@ const file_task_proto_rawDesc = "" +
 	"userData64\x12 \n" +
 	"\fuser_data_32\x18\x06 \x01(\rR\n" +
 	"userData32\x12\x14\n" +
-	"\x05flags\x18\a \x01(\rR\x05flags\"\x93\x02\n" +
+	"\x05flags\x18\a \x01(\rR\x05flags\"S\n" +
+	"\x19CreateAccountBatchRequest\x126\n" +
+	"\baccounts\x18\x01 \x03(\v2\x1a.task.CreateAccountRequestR\baccounts\"F\n" +
+	"\x14LookupAccountRequest\x12.\n" +
+	"\vaccount_ids\x18\x01 \x03(\v2\r.task.UInt128R\n" +
+	"accountIds\"\xaf\x02\n" +
+	"\x13QueryAccountRequest\x12\x14\n" +
+	"\x05limit\x18\x01 \x01(\rR\x05limit\x12%\n" +
+	"\fuser_data_32\x18\x02 \x01(\rH\x00R\n" +
+	"userData32\x88\x01\x01\x12%\n" +
+	"\fuser_data_64\x18\x03 \x01(\x04H\x01R\n" +
+	"userData64\x88\x01\x01\x126\n" +
+	"\ruser_data_128\x18\x04 \x01(\v2\r.task.UInt128H\x02R\vuserData128\x88\x01\x01\x12\x17\n" +
+	"\x04code\x18\x05 \x01(\rH\x03R\x04code\x88\x01\x01\x12\x1b\n" +
+	"\x06ledger\x18\x06 \x01(\rH\x04R\x06ledger\x88\x01\x01B\x0f\n" +
+	"\r_user_data_32B\x0f\n" +
+	"\r_user_data_64B\x10\n" +
+	"\x0e_user_data_128B\a\n" +
+	"\x05_codeB\t\n" +
+	"\a_ledger\"\xd7\x03\n" +
+	"\aAccount\x12\x1d\n" +
+	"\x02id\x18\x01 \x01(\v2\r.task.UInt128R\x02id\x124\n" +
+	"\x0edebits_pending\x18\x02 \x01(\v2\r.task.UInt128R\rdebitsPending\x122\n" +
+	"\rdebits_posted\x18\x03 \x01(\v2\r.task.UInt128R\fdebitsPosted\x126\n" +
+	"\x0fcredits_pending\x18\x04 \x01(\v2\r.task.UInt128R\x0ecreditsPending\x124\n" +
+	"\x0ecredits_posted\x18\x05 \x01(\v2\r.task.UInt128R\rcreditsPosted\x121\n" +
+	"\ruser_data_128\x18\x06 \x01(\v2\r.task.UInt128R\vuserData128\x12 \n" +
+	"\fuser_data_64\x18\a \x01(\x04R\n" +
+	"userData64\x12 \n" +
+	"\fuser_data_32\x18\b \x01(\rR\n" +
+	"userData32\x12\x16\n" +
+	"\x06ledger\x18\t \x01(\rR\x06ledger\x12\x12\n" +
+	"\x04code\x18\n" +
+	" \x01(\rR\x04code\x12\x14\n" +
+	"\x05flags\x18\v \x01(\rR\x05flags\x12\x1c\n" +
+	"\ttimestamp\x18\f \x01(\x04R\ttimestamp\"P\n" +
+	"\rAccountResult\x12)\n" +
+	"\baccounts\x18\x01 \x03(\v2\r.task.AccountR\baccounts\x12\x14\n" +
+	"\x05count\x18\x02 \x01(\x05R\x05count\"\xd2\x03\n" +
 	"\x15CreateTransferRequest\x12\x1d\n" +
 	"\x02id\x18\x01 \x01(\v2\r.task.UInt128R\x02id\x127\n" +
 	"\x10debit_account_id\x18\x02 \x01(\v2\r.task.UInt128R\x0edebitAccountId\x129\n" +
 	"\x11credit_account_id\x18\x03 \x01(\v2\r.task.UInt128R\x0fcreditAccountId\x12%\n" +
-	"\x06amount\x18\x04 \x01(\v2\r.task.UInt128R\x06amount\x12\x16\n" +
-	"\x06ledger\x18\x05 \x01(\rR\x06ledger\x12\x12\n" +
-	"\x04code\x18\x06 \x01(\rR\x04code\x12\x14\n" +
-	"\x05flags\x18\a \x01(\rR\x05flags\"\xa3\x01\n" +
+	"\x06amount\x18\x04 \x01(\v2\r.task.UInt128R\x06amount\x12,\n" +
+	"\n" +
+	"pending_id\x18\x05 \x01(\v2\r.task.UInt128R\tpendingId\x121\n" +
+	"\ruser_data_128\x18\x06 \x01(\v2\r.task.UInt128R\vuserData128\x12 \n" +
+	"\fuser_data_64\x18\a \x01(\x04R\n" +
+	"userData64\x12 \n" +
+	"\fuser_data_32\x18\b \x01(\rR\n" +
+	"userData32\x12\x18\n" +
+	"\atimeout\x18\t \x01(\x04R\atimeout\x12\x16\n" +
+	"\x06ledger\x18\n" +
+	" \x01(\rR\x06ledger\x12\x12\n" +
+	"\x04code\x18\v \x01(\rR\x04code\x12\x14\n" +
+	"\x05flags\x18\f \x01(\rR\x05flags\"W\n" +
+	"\x1aCreateTransferBatchRequest\x129\n" +
+	"\ttransfers\x18\x01 \x03(\v2\x1b.task.CreateTransferRequestR\ttransfers\"I\n" +
+	"\x15LookupTransferRequest\x120\n" +
+	"\ftransfer_ids\x18\x01 \x03(\v2\r.task.UInt128R\vtransferIds\"\xf2\x02\n" +
+	"\x14QueryTransferRequest\x12\x14\n" +
+	"\x05limit\x18\x01 \x01(\rR\x05limit\x12%\n" +
+	"\fuser_data_32\x18\x02 \x01(\rH\x00R\n" +
+	"userData32\x88\x01\x01\x12%\n" +
+	"\fuser_data_64\x18\x03 \x01(\x04H\x01R\n" +
+	"userData64\x88\x01\x01\x126\n" +
+	"\ruser_data_128\x18\x04 \x01(\v2\r.task.UInt128H\x02R\vuserData128\x88\x01\x01\x12\x17\n" +
+	"\x04code\x18\x05 \x01(\rH\x03R\x04code\x88\x01\x01\x12\x1b\n" +
+	"\x06ledger\x18\x06 \x01(\rH\x04R\x06ledger\x88\x01\x01\x121\n" +
+	"\n" +
+	"account_id\x18\a \x01(\v2\r.task.UInt128H\x05R\taccountId\x88\x01\x01B\x0f\n" +
+	"\r_user_data_32B\x0f\n" +
+	"\r_user_data_64B\x10\n" +
+	"\x0e_user_data_128B\a\n" +
+	"\x05_codeB\t\n" +
+	"\a_ledgerB\r\n" +
+	"\v_account_id\"\xe3\x03\n" +
+	"\bTransfer\x12\x1d\n" +
+	"\x02id\x18\x01 \x01(\v2\r.task.UInt128R\x02id\x127\n" +
+	"\x10debit_account_id\x18\x02 \x01(\v2\r.task.UInt128R\x0edebitAccountId\x129\n" +
+	"\x11credit_account_id\x18\x03 \x01(\v2\r.task.UInt128R\x0fcreditAccountId\x12%\n" +
+	"\x06amount\x18\x04 \x01(\v2\r.task.UInt128R\x06amount\x12,\n" +
+	"\n" +
+	"pending_id\x18\x05 \x01(\v2\r.task.UInt128R\tpendingId\x121\n" +
+	"\ruser_data_128\x18\x06 \x01(\v2\r.task.UInt128R\vuserData128\x12 \n" +
+	"\fuser_data_64\x18\a \x01(\x04R\n" +
+	"userData64\x12 \n" +
+	"\fuser_data_32\x18\b \x01(\rR\n" +
+	"userData32\x12\x18\n" +
+	"\atimeout\x18\t \x01(\x04R\atimeout\x12\x16\n" +
+	"\x06ledger\x18\n" +
+	" \x01(\rR\x06ledger\x12\x12\n" +
+	"\x04code\x18\v \x01(\rR\x04code\x12\x14\n" +
+	"\x05flags\x18\f \x01(\rR\x05flags\x12\x1c\n" +
+	"\ttimestamp\x18\r \x01(\x04R\ttimestamp\"T\n" +
+	"\x0eTransferResult\x12,\n" +
+	"\ttransfers\x18\x01 \x03(\v2\x0e.task.TransferR\ttransfers\x12\x14\n" +
+	"\x05count\x18\x02 \x01(\x05R\x05count\"v\n" +
+	"\x1aPostPendingTransferRequest\x12,\n" +
+	"\n" +
+	"pending_id\x18\x01 \x01(\v2\r.task.UInt128R\tpendingId\x12\x16\n" +
+	"\x06ledger\x18\x02 \x01(\rR\x06ledger\x12\x12\n" +
+	"\x04code\x18\x03 \x01(\rR\x04code\"v\n" +
+	"\x1aVoidPendingTransferRequest\x12,\n" +
+	"\n" +
+	"pending_id\x18\x01 \x01(\v2\r.task.UInt128R\tpendingId\x12\x16\n" +
+	"\x06ledger\x18\x02 \x01(\rR\x06ledger\x12\x12\n" +
+	"\x04code\x18\x03 \x01(\rR\x04code\"\x80\x01\n" +
+	"\vQueryResult\x121\n" +
+	"\baccounts\x18\x01 \x01(\v2\x13.task.AccountResultH\x00R\baccounts\x124\n" +
+	"\ttransfers\x18\x02 \x01(\v2\x14.task.TransferResultH\x00R\ttransfersB\b\n" +
+	"\x06result\"\x94\x06\n" +
 	"\aPayload\x12C\n" +
-	"\x0ecreate_account\x18\x01 \x01(\v2\x1a.task.CreateAccountRequestH\x00R\rcreateAccount\x12F\n" +
-	"\x0fcreate_transfer\x18\x02 \x01(\v2\x1b.task.CreateTransferRequestH\x00R\x0ecreateTransferB\v\n" +
-	"\toperation*\xb8\x01\n" +
+	"\x0ecreate_account\x18\x01 \x01(\v2\x1a.task.CreateAccountRequestH\x00R\rcreateAccount\x12S\n" +
+	"\x14create_account_batch\x18\x02 \x01(\v2\x1f.task.CreateAccountBatchRequestH\x00R\x12createAccountBatch\x12C\n" +
+	"\x0elookup_account\x18\x03 \x01(\v2\x1a.task.LookupAccountRequestH\x00R\rlookupAccount\x12@\n" +
+	"\rquery_account\x18\x04 \x01(\v2\x19.task.QueryAccountRequestH\x00R\fqueryAccount\x12F\n" +
+	"\x0fcreate_transfer\x18\x05 \x01(\v2\x1b.task.CreateTransferRequestH\x00R\x0ecreateTransfer\x12V\n" +
+	"\x15create_transfer_batch\x18\x06 \x01(\v2 .task.CreateTransferBatchRequestH\x00R\x13createTransferBatch\x12F\n" +
+	"\x0flookup_transfer\x18\a \x01(\v2\x1b.task.LookupTransferRequestH\x00R\x0elookupTransfer\x12C\n" +
+	"\x0equery_transfer\x18\b \x01(\v2\x1a.task.QueryTransferRequestH\x00R\rqueryTransfer\x12V\n" +
+	"\x15post_pending_transfer\x18\t \x01(\v2 .task.PostPendingTransferRequestH\x00R\x13postPendingTransfer\x12V\n" +
+	"\x15void_pending_transfer\x18\n" +
+	" \x01(\v2 .task.VoidPendingTransferRequestH\x00R\x13voidPendingTransferB\v\n" +
+	"\toperation*\xa4\x01\n" +
+	"\fAccountFlags\x12\x16\n" +
+	"\x12ACCOUNT_FLAGS_NONE\x10\x00\x12\x18\n" +
+	"\x14ACCOUNT_FLAGS_LINKED\x10\x01\x120\n" +
+	",ACCOUNT_FLAGS_DEBITS_MUST_NOT_EXCEED_CREDITS\x10\x02\x120\n" +
+	",ACCOUNT_FLAGS_CREDITS_MUST_NOT_EXCEED_DEBITS\x10\x04*\xfc\x01\n" +
+	"\rTransferFlags\x12\x17\n" +
+	"\x13TRANSFER_FLAGS_NONE\x10\x00\x12\x19\n" +
+	"\x15TRANSFER_FLAGS_LINKED\x10\x01\x12\x1a\n" +
+	"\x16TRANSFER_FLAGS_PENDING\x10\x02\x12(\n" +
+	"$TRANSFER_FLAGS_POST_PENDING_TRANSFER\x10\x04\x12(\n" +
+	"$TRANSFER_FLAGS_VOID_PENDING_TRANSFER\x10\b\x12\"\n" +
+	"\x1eTRANSFER_FLAGS_BALANCING_DEBIT\x10\x10\x12#\n" +
+	"\x1fTRANSFER_FLAGS_BALANCING_CREDIT\x10 *\xb8\x01\n" +
 	"\x11TransactionStatus\x12\"\n" +
 	"\x1eTRANSACTION_STATUS_UNSPECIFIED\x10\x00\x12\x1e\n" +
 	"\x1aTRANSACTION_STATUS_PENDING\x10\x01\x12 \n" +
@@ -623,34 +1997,87 @@ func file_task_proto_rawDescGZIP() []byte {
 	return file_task_proto_rawDescData
 }
 
-var file_task_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_task_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_task_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
+var file_task_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
 var file_task_proto_goTypes = []any{
-	(TransactionStatus)(0),        // 0: task.TransactionStatus
-	(*TaskRequest)(nil),           // 1: task.TaskRequest
-	(*TaskResponse)(nil),          // 2: task.TaskResponse
-	(*UInt128)(nil),               // 3: task.UInt128
-	(*CreateAccountRequest)(nil),  // 4: task.CreateAccountRequest
-	(*CreateTransferRequest)(nil), // 5: task.CreateTransferRequest
-	(*Payload)(nil),               // 6: task.Payload
+	(AccountFlags)(0),                  // 0: task.AccountFlags
+	(TransferFlags)(0),                 // 1: task.TransferFlags
+	(TransactionStatus)(0),             // 2: task.TransactionStatus
+	(*TaskRequest)(nil),                // 3: task.TaskRequest
+	(*TaskResponse)(nil),               // 4: task.TaskResponse
+	(*UInt128)(nil),                    // 5: task.UInt128
+	(*CreateAccountRequest)(nil),       // 6: task.CreateAccountRequest
+	(*CreateAccountBatchRequest)(nil),  // 7: task.CreateAccountBatchRequest
+	(*LookupAccountRequest)(nil),       // 8: task.LookupAccountRequest
+	(*QueryAccountRequest)(nil),        // 9: task.QueryAccountRequest
+	(*Account)(nil),                    // 10: task.Account
+	(*AccountResult)(nil),              // 11: task.AccountResult
+	(*CreateTransferRequest)(nil),      // 12: task.CreateTransferRequest
+	(*CreateTransferBatchRequest)(nil), // 13: task.CreateTransferBatchRequest
+	(*LookupTransferRequest)(nil),      // 14: task.LookupTransferRequest
+	(*QueryTransferRequest)(nil),       // 15: task.QueryTransferRequest
+	(*Transfer)(nil),                   // 16: task.Transfer
+	(*TransferResult)(nil),             // 17: task.TransferResult
+	(*PostPendingTransferRequest)(nil), // 18: task.PostPendingTransferRequest
+	(*VoidPendingTransferRequest)(nil), // 19: task.VoidPendingTransferRequest
+	(*QueryResult)(nil),                // 20: task.QueryResult
+	(*Payload)(nil),                    // 21: task.Payload
 }
 var file_task_proto_depIdxs = []int32{
-	6,  // 0: task.TaskRequest.payload:type_name -> task.Payload
-	3,  // 1: task.CreateAccountRequest.id:type_name -> task.UInt128
-	3,  // 2: task.CreateAccountRequest.user_data_128:type_name -> task.UInt128
-	3,  // 3: task.CreateTransferRequest.id:type_name -> task.UInt128
-	3,  // 4: task.CreateTransferRequest.debit_account_id:type_name -> task.UInt128
-	3,  // 5: task.CreateTransferRequest.credit_account_id:type_name -> task.UInt128
-	3,  // 6: task.CreateTransferRequest.amount:type_name -> task.UInt128
-	4,  // 7: task.Payload.create_account:type_name -> task.CreateAccountRequest
-	5,  // 8: task.Payload.create_transfer:type_name -> task.CreateTransferRequest
-	1,  // 9: task.Task.Send:input_type -> task.TaskRequest
-	2,  // 10: task.Task.Send:output_type -> task.TaskResponse
-	10, // [10:11] is the sub-list for method output_type
-	9,  // [9:10] is the sub-list for method input_type
-	9,  // [9:9] is the sub-list for extension type_name
-	9,  // [9:9] is the sub-list for extension extendee
-	0,  // [0:9] is the sub-list for field type_name
+	21, // 0: task.TaskRequest.payload:type_name -> task.Payload
+	11, // 1: task.TaskResponse.account_result:type_name -> task.AccountResult
+	17, // 2: task.TaskResponse.transfer_result:type_name -> task.TransferResult
+	20, // 3: task.TaskResponse.query_result:type_name -> task.QueryResult
+	5,  // 4: task.CreateAccountRequest.id:type_name -> task.UInt128
+	5,  // 5: task.CreateAccountRequest.user_data_128:type_name -> task.UInt128
+	6,  // 6: task.CreateAccountBatchRequest.accounts:type_name -> task.CreateAccountRequest
+	5,  // 7: task.LookupAccountRequest.account_ids:type_name -> task.UInt128
+	5,  // 8: task.QueryAccountRequest.user_data_128:type_name -> task.UInt128
+	5,  // 9: task.Account.id:type_name -> task.UInt128
+	5,  // 10: task.Account.debits_pending:type_name -> task.UInt128
+	5,  // 11: task.Account.debits_posted:type_name -> task.UInt128
+	5,  // 12: task.Account.credits_pending:type_name -> task.UInt128
+	5,  // 13: task.Account.credits_posted:type_name -> task.UInt128
+	5,  // 14: task.Account.user_data_128:type_name -> task.UInt128
+	10, // 15: task.AccountResult.accounts:type_name -> task.Account
+	5,  // 16: task.CreateTransferRequest.id:type_name -> task.UInt128
+	5,  // 17: task.CreateTransferRequest.debit_account_id:type_name -> task.UInt128
+	5,  // 18: task.CreateTransferRequest.credit_account_id:type_name -> task.UInt128
+	5,  // 19: task.CreateTransferRequest.amount:type_name -> task.UInt128
+	5,  // 20: task.CreateTransferRequest.pending_id:type_name -> task.UInt128
+	5,  // 21: task.CreateTransferRequest.user_data_128:type_name -> task.UInt128
+	12, // 22: task.CreateTransferBatchRequest.transfers:type_name -> task.CreateTransferRequest
+	5,  // 23: task.LookupTransferRequest.transfer_ids:type_name -> task.UInt128
+	5,  // 24: task.QueryTransferRequest.user_data_128:type_name -> task.UInt128
+	5,  // 25: task.QueryTransferRequest.account_id:type_name -> task.UInt128
+	5,  // 26: task.Transfer.id:type_name -> task.UInt128
+	5,  // 27: task.Transfer.debit_account_id:type_name -> task.UInt128
+	5,  // 28: task.Transfer.credit_account_id:type_name -> task.UInt128
+	5,  // 29: task.Transfer.amount:type_name -> task.UInt128
+	5,  // 30: task.Transfer.pending_id:type_name -> task.UInt128
+	5,  // 31: task.Transfer.user_data_128:type_name -> task.UInt128
+	16, // 32: task.TransferResult.transfers:type_name -> task.Transfer
+	5,  // 33: task.PostPendingTransferRequest.pending_id:type_name -> task.UInt128
+	5,  // 34: task.VoidPendingTransferRequest.pending_id:type_name -> task.UInt128
+	11, // 35: task.QueryResult.accounts:type_name -> task.AccountResult
+	17, // 36: task.QueryResult.transfers:type_name -> task.TransferResult
+	6,  // 37: task.Payload.create_account:type_name -> task.CreateAccountRequest
+	7,  // 38: task.Payload.create_account_batch:type_name -> task.CreateAccountBatchRequest
+	8,  // 39: task.Payload.lookup_account:type_name -> task.LookupAccountRequest
+	9,  // 40: task.Payload.query_account:type_name -> task.QueryAccountRequest
+	12, // 41: task.Payload.create_transfer:type_name -> task.CreateTransferRequest
+	13, // 42: task.Payload.create_transfer_batch:type_name -> task.CreateTransferBatchRequest
+	14, // 43: task.Payload.lookup_transfer:type_name -> task.LookupTransferRequest
+	15, // 44: task.Payload.query_transfer:type_name -> task.QueryTransferRequest
+	18, // 45: task.Payload.post_pending_transfer:type_name -> task.PostPendingTransferRequest
+	19, // 46: task.Payload.void_pending_transfer:type_name -> task.VoidPendingTransferRequest
+	3,  // 47: task.Task.Send:input_type -> task.TaskRequest
+	4,  // 48: task.Task.Send:output_type -> task.TaskResponse
+	48, // [48:49] is the sub-list for method output_type
+	47, // [47:48] is the sub-list for method input_type
+	47, // [47:47] is the sub-list for extension type_name
+	47, // [47:47] is the sub-list for extension extendee
+	0,  // [0:47] is the sub-list for field type_name
 }
 
 func init() { file_task_proto_init() }
@@ -659,17 +2086,32 @@ func file_task_proto_init() {
 		return
 	}
 	file_task_proto_msgTypes[0].OneofWrappers = []any{}
-	file_task_proto_msgTypes[5].OneofWrappers = []any{
+	file_task_proto_msgTypes[1].OneofWrappers = []any{}
+	file_task_proto_msgTypes[6].OneofWrappers = []any{}
+	file_task_proto_msgTypes[12].OneofWrappers = []any{}
+	file_task_proto_msgTypes[17].OneofWrappers = []any{
+		(*QueryResult_Accounts)(nil),
+		(*QueryResult_Transfers)(nil),
+	}
+	file_task_proto_msgTypes[18].OneofWrappers = []any{
 		(*Payload_CreateAccount)(nil),
+		(*Payload_CreateAccountBatch)(nil),
+		(*Payload_LookupAccount)(nil),
+		(*Payload_QueryAccount)(nil),
 		(*Payload_CreateTransfer)(nil),
+		(*Payload_CreateTransferBatch)(nil),
+		(*Payload_LookupTransfer)(nil),
+		(*Payload_QueryTransfer)(nil),
+		(*Payload_PostPendingTransfer)(nil),
+		(*Payload_VoidPendingTransfer)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_task_proto_rawDesc), len(file_task_proto_rawDesc)),
-			NumEnums:      1,
-			NumMessages:   6,
+			NumEnums:      3,
+			NumMessages:   19,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

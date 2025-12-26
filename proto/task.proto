@@ -1,5 +1,4 @@
 syntax = "proto3";
-
 package task;
 
 option go_package = "rrproducer/producer/models;models";
@@ -11,7 +10,7 @@ service Task {
 message TaskRequest {
   string id = 1;
   string task_type = 2;
-  string content_type =3;
+  string content_type = 3;
   Payload payload = 4;
   int64 created_at = 5;
   optional uint32 priority = 6;
@@ -23,6 +22,9 @@ message TaskResponse {
   string task_type = 2;
   bool success = 3;
   string message = 4;
+  optional AccountResult account_result = 5;
+  optional TransferResult transfer_result = 6;
+  optional QueryResult query_result = 7;
 }
 
 message UInt128 {
@@ -30,6 +32,7 @@ message UInt128 {
   fixed64 high = 2;
 }
 
+// Account Operations
 message CreateAccountRequest {
   UInt128 id = 1;
   uint32 ledger = 2;
@@ -40,23 +43,157 @@ message CreateAccountRequest {
   uint32 flags = 7;
 }
 
+message CreateAccountBatchRequest {
+  repeated CreateAccountRequest accounts = 1;
+}
+
+message LookupAccountRequest {
+  repeated UInt128 account_ids = 1;
+}
+
+message QueryAccountRequest {
+  uint32 limit = 1;
+  optional uint32 user_data_32 = 2;
+  optional uint64 user_data_64 = 3;
+  optional UInt128 user_data_128 = 4;
+  optional uint32 code = 5;
+  optional uint32 ledger = 6;
+}
+
+message Account {
+  UInt128 id = 1;
+  UInt128 debits_pending = 2;  // Changed from UInt128 to uint64
+  UInt128 debits_posted = 3;   // Changed from UInt128 to uint64
+  UInt128 credits_pending = 4; // Changed from UInt128 to uint64
+  UInt128 credits_posted = 5;  // Changed from UInt128 to uint64
+  UInt128 user_data_128 = 6;
+  uint64 user_data_64 = 7;
+  uint32 user_data_32 = 8;
+  uint32 ledger = 9;
+  uint32 code = 10;  // Using uint32, will convert to u16
+  uint32 flags = 11;
+  uint64 timestamp = 12;
+}
+
+message AccountResult {
+  repeated Account accounts = 1;
+  int32 count = 2;
+}
+
+// Transfer Operations
 message CreateTransferRequest {
   UInt128 id = 1;
   UInt128 debit_account_id = 2;
   UInt128 credit_account_id = 3;
-  UInt128 amount = 4;
-  uint32 ledger = 5;
-  uint32 code = 6;
-  uint32 flags = 7;
+  UInt128 amount = 4;  // Changed from UInt128 to uint64 (TigerBeetle uses u64)
+  UInt128 pending_id = 5;
+  UInt128 user_data_128 = 6;
+  uint64 user_data_64 = 7;
+  uint32 user_data_32 = 8;
+  uint64 timeout = 9;
+  uint32 ledger = 10;
+  uint32 code = 11;  // Using uint32, will convert to u16
+  uint32 flags = 12;
 }
 
-message Payload {
-  oneof operation {
-    CreateAccountRequest create_account = 1;
-    CreateTransferRequest create_transfer = 2;
+message CreateTransferBatchRequest {
+  repeated CreateTransferRequest transfers = 1;
+}
+
+message LookupTransferRequest {
+  repeated UInt128 transfer_ids = 1;
+}
+
+message QueryTransferRequest {
+  uint32 limit = 1;
+  optional uint32 user_data_32 = 2;
+  optional uint64 user_data_64 = 3;
+  optional UInt128 user_data_128 = 4;
+  optional uint32 code = 5;
+  optional uint32 ledger = 6;
+  optional UInt128 account_id = 7;
+}
+
+message Transfer {
+  UInt128 id = 1;
+  UInt128 debit_account_id = 2;
+  UInt128 credit_account_id = 3;
+  UInt128 amount = 4;  // Changed from UInt128 to uint64 (TigerBeetle uses u64)
+  UInt128 pending_id = 5;
+  UInt128 user_data_128 = 6;
+  uint64 user_data_64 = 7;
+  uint32 user_data_32 = 8;
+  uint64 timeout = 9;
+  uint32 ledger = 10;
+  uint32 code = 11;  // Using uint32, will convert to u16
+  uint32 flags = 12;
+  uint64 timestamp = 13;
+}
+
+message TransferResult {
+  repeated Transfer transfers = 1;
+  int32 count = 2;
+}
+
+// Pending Transfer Operations
+message PostPendingTransferRequest {
+  UInt128 pending_id = 1;
+  uint32 ledger = 2;
+  uint32 code = 3;  // Using uint32, will convert to u16
+}
+
+message VoidPendingTransferRequest {
+  UInt128 pending_id = 1;
+  uint32 ledger = 2;
+  uint32 code = 3;  // Using uint32, will convert to u16
+}
+
+// Query Results
+message QueryResult {
+  oneof result {
+    AccountResult accounts = 1;
+    TransferResult transfers = 2;
   }
 }
 
+// Payload with all operations
+message Payload {
+  oneof operation {
+    CreateAccountRequest create_account = 1;
+    CreateAccountBatchRequest create_account_batch = 2;
+    LookupAccountRequest lookup_account = 3;
+    QueryAccountRequest query_account = 4;
+
+    CreateTransferRequest create_transfer = 5;
+    CreateTransferBatchRequest create_transfer_batch = 6;
+    LookupTransferRequest lookup_transfer = 7;
+    QueryTransferRequest query_transfer = 8;
+
+    PostPendingTransferRequest post_pending_transfer = 9;
+    VoidPendingTransferRequest void_pending_transfer = 10;
+  }
+}
+
+// Account Flags
+enum AccountFlags {
+  ACCOUNT_FLAGS_NONE = 0;
+  ACCOUNT_FLAGS_LINKED = 1;
+  ACCOUNT_FLAGS_DEBITS_MUST_NOT_EXCEED_CREDITS = 2;
+  ACCOUNT_FLAGS_CREDITS_MUST_NOT_EXCEED_DEBITS = 4;
+}
+
+// Transfer Flags
+enum TransferFlags {
+  TRANSFER_FLAGS_NONE = 0;
+  TRANSFER_FLAGS_LINKED = 1;
+  TRANSFER_FLAGS_PENDING = 2;
+  TRANSFER_FLAGS_POST_PENDING_TRANSFER = 4;
+  TRANSFER_FLAGS_VOID_PENDING_TRANSFER = 8;
+  TRANSFER_FLAGS_BALANCING_DEBIT = 16;
+  TRANSFER_FLAGS_BALANCING_CREDIT = 32;
+}
+
+// Transaction Status
 enum TransactionStatus {
   TRANSACTION_STATUS_UNSPECIFIED = 0;
   TRANSACTION_STATUS_PENDING = 1;

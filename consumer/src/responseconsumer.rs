@@ -1,24 +1,47 @@
+use crate::config::Config;
+use crate::models::SerializableTaskResponse;
+use crate::task::TaskResponse;
+use crate::worker::ContentType;
 use anyhow::Result;
 use rabbitmq_stream_client::error::StreamCreateError;
 use rabbitmq_stream_client::types::{ByteCapacity, Message as StreamMessage, ResponseCode};
-use rabbitmq_stream_client::{Environment, NoDedup, Producer};
-use tokio::sync::OnceCell;
+use rabbitmq_stream_client::{Consumer, Environment};
+use tigerbeetle_unofficial::Client;
 use tracing::info;
 use uuid::Uuid;
 
-use crate::config::Config;
-use crate::task::TaskResponse;
-use crate::worker::ContentType;
+use std::sync::Arc;
+use tokio::sync::{Mutex, OnceCell};
 
-// 1. Define a Global Static Producer
-// We use OnceCell to store the producer so it can be initialized asynchronously.
-// We must specify the concrete type <NoDeduplication> instead of "impl Send".
-static RESPONSE_PRODUCER: OnceCell<Producer<NoDedup>> = OnceCell::const_new();
+static TB_CLIENT: OnceCell<Arc<Mutex<Client>>> = OnceCell::const_new();
+static RESPONSE_CONSUMER: OnceCell<Consumer> = OnceCell::const_new();
 
-/// This helper retrieves the global producer, initializing it only if it doesn't exist yet.
-async fn get_global_producer() -> Result<&'static Producer<NoDedup>> {
-    RESPONSE_PRODUCER
-        .get_or_try_init(init_response_producer)
+pub async fn get_tb_client() -> Result<Arc<Mutex<Client>>> {
+    TB_CLIENT
+        .get_or_try_init(|| async {
+            let client = init_db_client().await?;
+            Ok(Arc::new(Mutex::new(client)))
+        })
+        .await
+        .map(|c| Arc::clone(c))
+}
+
+async fn init_db_client() -> Result<Client> {
+    let config = Config::from_env()?;
+    let client = Client::new(0, config.tb_address.as_str())
+        .map_err(|e| anyhow::anyhow!("Failed to connect to TigerBeetle: {:?}", e))?;
+
+    info!(
+        "TigerBeetle client initialized with address: {}",
+        config.tb_address
+    );
+
+    Ok(client)
+}
+
+async fn get_response_consumer() -> Result<&'static Consumer> {
+    RESPONSE_CONSUMER
+        .get_or_try_init(init_response_consumer)
         .await
 }
 
@@ -29,7 +52,7 @@ pub async fn send_response(
     content_type: ContentType,
     correlation_id: Option<String>,
 ) -> Result<()> {
-    let producer = get_global_producer().await?;
+    let _consumer = get_response_consumer().await?;
 
     info!(
         "Sending response: correlation_id={:?}, content_type={}, size={} bytes",
@@ -38,17 +61,15 @@ pub async fn send_response(
         bytes.len()
     );
 
-    let msg = StreamMessage::builder()
+    let _msg = StreamMessage::builder()
         .properties()
         .content_encoding(content_type.as_str())
         .message_id(Uuid::new_v4().to_string())
         .content_type(content_type.as_str())
-        .correlation_id(correlation_id.unwrap())
+        // .correlation_id(correlation_id.unwrap())
         .message_builder()
         .body(bytes)
         .build();
-
-    producer.send_with_confirm(msg).await?;
 
     Ok(())
 }
@@ -63,7 +84,11 @@ pub async fn send_task_response(
 
     // Encode based on content type
     let bytes = match content_type {
-        ContentType::Json => json_serialize(response)?,
+        ContentType::Json => {
+            // Convert to serializable version for JSON
+            let serializable: SerializableTaskResponse = response.clone().into();
+            json_serialize(&serializable)?
+        }
         ContentType::Protobuf => {
             let mut buf = Vec::with_capacity(response.encoded_len());
             response.encode(&mut buf)?;
@@ -74,7 +99,7 @@ pub async fn send_task_response(
     send_response(bytes, content_type, correlation_id).await
 }
 
-pub async fn init_response_producer() -> Result<Producer<NoDedup>> {
+pub async fn init_response_consumer() -> Result<Consumer> {
     let config = Config::from_env()?;
 
     let environment = Environment::builder()
@@ -91,10 +116,10 @@ pub async fn init_response_producer() -> Result<Producer<NoDedup>> {
         .stream_creator()
         .max_length(ByteCapacity::GB(5))
         .max_age(std::time::Duration::from_secs(3600 * 24 * 7))
-        .create(&config.response_stream_name)
+        .create(&config.stream_name)
         .await
     {
-        Ok(_) => info!("Stream '{}' created", config.response_stream_name),
+        Ok(_) => info!("Stream '{}' created", config.stream_name),
 
         Err(StreamCreateError::Create {
             status: ResponseCode::StreamAlreadyExists | ResponseCode::PrecoditionFailed,
@@ -102,19 +127,16 @@ pub async fn init_response_producer() -> Result<Producer<NoDedup>> {
         }) => {
             info!(
                 "Stream '{}' already exists (or has different properties); continuing",
-                config.response_stream_name
+                config.stream_name
             );
         }
 
         Err(e) => return Err(e.into()),
     }
 
-    let producer = environment
-        .producer()
-        .build(&config.response_stream_name)
-        .await?;
+    let producer = environment.consumer().build(&config.stream_name).await?;
 
-    info!("Global Response Producer initialized");
+    info!("Response Consumer initialized");
 
     Ok(producer)
 }

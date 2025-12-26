@@ -3,36 +3,33 @@ use tonic_prost_build::Config;
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut config = Config::new();
 
-    config.type_attribute(
-        "task.TaskRequest",
-        "#[derive(serde::Serialize, serde::Deserialize)]",
-    );
-    config.type_attribute(
-        "task.TaskResponse",
-        "#[derive(serde::Serialize, serde::Deserialize)]",
-    );
-
-    config.type_attribute(
-        "task.Payload",
-        "#[derive(serde::Serialize, serde::Deserialize)]",
-    );
-    config.type_attribute(
-        "task.Payload.operation",
-        "#[derive(serde::Serialize, serde::Deserialize)]",
-    );
-    config.type_attribute(
-        "task.CreateTransferRequest",
-        "#[derive(serde::Serialize, serde::Deserialize)]",
-    );
-    config.type_attribute(
-        "task.CreateAccountRequest",
-        "#[derive(serde::Serialize, serde::Deserialize)]",
-    );
-    config.type_attribute(
+    // Only types without oneofs
+    let types = vec![
         "task.UInt128",
-        "#[derive(serde::Serialize, serde::Deserialize)]",
-    );
-    // Compile the proto file
+        "task.CreateAccountRequest",
+        "task.CreateAccountBatchRequest",
+        "task.LookupAccountRequest",
+        "task.QueryAccountRequest",
+        "task.Account",
+        "task.AccountResult",
+        "task.CreateTransferRequest",
+        "task.CreateTransferBatchRequest",
+        "task.LookupTransferRequest",
+        "task.QueryTransferRequest",
+        "task.Transfer",
+        "task.TransferResult",
+        "task.PostPendingTransferRequest",
+        "task.VoidPendingTransferRequest",
+        "task.AccountFlags",
+        "task.TransferFlags",
+        "task.TransactionStatus",
+    ];
+
+    for type_name in types {
+        config.type_attribute(type_name, "#[derive(serde::Serialize, serde::Deserialize)]");
+    }
+
     config.compile_protos(&["../proto/task.proto"], &["../proto/"])?;
+
     Ok(())
 }

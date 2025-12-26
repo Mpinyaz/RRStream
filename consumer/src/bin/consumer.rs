@@ -5,12 +5,11 @@ use rabbitmq_stream_client::error::StreamCreateError;
 use rabbitmq_stream_client::types::{ByteCapacity, OffsetSpecification, ResponseCode};
 use rabbitmq_stream_client::Environment;
 use rrconsumer::config::Config;
+use rrconsumer::responseconsumer::send_task_response;
 use rrconsumer::worker::{decode_message, process_task};
 use tokio::signal;
 use tokio::task;
 use tracing::{error, info, warn};
-
-use rrconsumer::responsepublish::{init_response_producer, send_task_response};
 
 struct MessageProcessor;
 
@@ -21,7 +20,6 @@ impl MessageProcessor {
 
     async fn process(&self, msg: &rabbitmq_stream_client::types::Message) -> anyhow::Result<()> {
         let decoded = decode_message(msg)?;
-
         info!(
             "Processing message: task_id={}, correlation_id={:?}",
             decoded.task.id, decoded.correlation_id
@@ -30,10 +28,10 @@ impl MessageProcessor {
         // Process the task
         let response = process_task(msg).await?;
 
+        // Send response with the decoded content type and correlation ID
         send_task_response(&response, decoded.content_type, decoded.correlation_id).await?;
 
         info!("Response sent for task_id={}", response.id);
-
         Ok(())
     }
 }
@@ -45,7 +43,7 @@ async fn main() -> Result<(), anyhow::Error> {
         .with_max_level(tracing::Level::INFO)
         .init();
 
-    info!("🚀 Starting RabbitMQ Stream Consumer with Response Producer");
+    info!("🚀 Starting RabbitMQ Stream Consumer");
 
     // Load configuration
     let config = Config::from_env()?;
@@ -65,45 +63,58 @@ async fn main() -> Result<(), anyhow::Error> {
         config.host, config.port
     );
 
-    // Create or verify request stream exists
+    // Create or verify request stream exists (for incoming tasks)
+    let request_stream = format!("{}_requests", config.stream_name);
     match environment
         .stream_creator()
         .max_length(ByteCapacity::GB(5))
         .max_age(std::time::Duration::from_secs(3600 * 24 * 7))
-        .create(&config.stream_name)
+        .create(&request_stream)
         .await
     {
-        Ok(_) => info!("Stream '{}' created successfully", config.stream_name),
+        Ok(_) => info!("Request stream '{}' created successfully", request_stream),
         Err(StreamCreateError::Create {
             status: ResponseCode::StreamAlreadyExists,
             ..
         }) => {
             info!(
-                "Stream '{}' already exists, using existing stream",
-                config.stream_name
+                "Request stream '{}' already exists, using existing stream",
+                request_stream
             );
         }
         Err(e) => return Err(e.into()),
     }
 
-    // Create consumer for incoming tasks
+    // Create or verify response stream exists (for outgoing responses)
+    let response_stream = format!("{}_responses", config.stream_name);
+    match environment
+        .stream_creator()
+        .max_length(ByteCapacity::GB(5))
+        .max_age(std::time::Duration::from_secs(3600 * 24 * 7))
+        .create(&response_stream)
+        .await
+    {
+        Ok(_) => info!("Response stream '{}' created successfully", response_stream),
+        Err(StreamCreateError::Create {
+            status: ResponseCode::StreamAlreadyExists,
+            ..
+        }) => {
+            info!(
+                "Response stream '{}' already exists, using existing stream",
+                response_stream
+            );
+        }
+        Err(e) => return Err(e.into()),
+    }
+
+    // Create consumer for incoming tasks (from request stream)
     let mut consumer = environment
         .consumer()
-        .offset(OffsetSpecification::Next) // Changed to Next for new messages
-        .build(&config.response_stream_name)
+        .offset(OffsetSpecification::Next) // Start from next message
+        .build(&request_stream)
         .await?;
 
-    info!("📡 Consumer started for stream: {}", config.stream_name);
-
-    match init_response_producer().await {
-        Ok(_) => {
-            info!("✅ Response producer initialized successfully");
-        }
-        Err(e) => {
-            error!("❌ Failed to start response producer: {}", e);
-            return Err(e);
-        }
-    };
+    info!("📡 Consumer started for stream: {}", request_stream);
 
     let handle = consumer.handle();
     let processor = MessageProcessor::new();
