@@ -1,23 +1,12 @@
 {
-  "id": "test-account-1",
-  "task_type": "create_account",
-  "content_type": "application/x-protobuf",
-  "created_at": 1735257600,
-  "payload": {
-    "create_account": {
-      "id": {
-        "low": 12345,
-        "high": 0
-      },
-      "ledger": 1,
-      "code": 100,
-      "user_data_128": {
-        "low": 0,
-        "high": 0
-      },
-      "user_data_64": 0,
-      "user_data_32": 0,
-      "flags": 0
-    }
-  }
+  "id": "task-123",
+  "task_type": 1,
+  "created_at": 1766864710,
+  "ledger": 1,
+  "code": 100,
+  "account_id": { "low": 1239, "high": 0 },
+  "user_data_128": { "low": 9871, "high": 0 },
+  "user_data_64": 5555,
+  "user_data_32": 42,
+  "account_batch": []
 }

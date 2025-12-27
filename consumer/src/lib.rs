@@ -1,7 +1,6 @@
 pub mod config;
-pub mod responseconsumer;
+pub mod services;
 pub mod worker;
 pub mod task {
     tonic::include_proto!("task");
 }
-pub mod models;

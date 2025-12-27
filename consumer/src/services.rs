@@ -1,5 +1,4 @@
 use crate::config::Config;
-use crate::models::SerializableTaskResponse;
 use crate::task::TaskResponse;
 use crate::worker::ContentType;
 use anyhow::Result;
@@ -116,10 +115,7 @@ pub async fn send_task_response(
     use serde_json::to_vec as json_serialize;
 
     let bytes = match content_type {
-        ContentType::Json => {
-            let serializable: SerializableTaskResponse = response.clone().into();
-            json_serialize(&serializable)?
-        }
+        ContentType::Json => json_serialize(&response)?,
         ContentType::Protobuf => {
             let mut buf = Vec::with_capacity(response.encoded_len());
             response.encode(&mut buf)?;

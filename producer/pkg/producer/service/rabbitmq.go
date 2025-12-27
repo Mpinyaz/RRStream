@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"sync/atomic"
 	"time"
 
 	"rrproducer/pkg/utils"
 
 	models "rrproducer/pkg/models/proto"
 
-	"github.com/google/uuid"
 	"github.com/rabbitmq/rabbitmq-stream-go-client/pkg/amqp"
 	stream "github.com/rabbitmq/rabbitmq-stream-go-client/pkg/stream"
 	"go.uber.org/zap"
@@ -19,10 +19,11 @@ import (
 )
 
 type StreamProducer struct {
-	Env        *stream.Environment
-	Producer   *stream.Producer
-	StreamName string
-	Logger     *zap.Logger
+	Env             *stream.Environment
+	Producer        *stream.Producer
+	StreamName      string
+	Logger          *zap.Logger
+	pendingConfirms int32 // Counter to track in-flight messages
 }
 
 func StartProducer() (*StreamProducer, error) {
@@ -31,13 +32,14 @@ func StartProducer() (*StreamProducer, error) {
 	portStr := os.Getenv("RABBITMQ_STREAM_PORT")
 	port, err := strconv.Atoi(portStr)
 	if err != nil {
-		logger.Panic("invalid port:", zap.Error(err))
+		logger.Error("invalid port", zap.Error(err))
+		return nil, err
 	}
 
 	username := os.Getenv("RABBITMQ_DEFAULT_USER")
 	password := os.Getenv("RABBITMQ_DEFAULT_PASS")
-	streamName := os.Getenv("RABBITMQ_STREAM_NAME")
-	streamName += "_requests"
+	// Only connect to the existing stream
+	streamName := os.Getenv("RABBITMQ_STREAM_NAME") + "_requests"
 
 	env, err := stream.NewEnvironment(
 		stream.NewEnvironmentOptions().
@@ -47,35 +49,28 @@ func StartProducer() (*StreamProducer, error) {
 			SetPassword(password),
 	)
 	if err != nil {
-		logger.Error("failed to create environment", zap.Error(err))
 		return nil, fmt.Errorf("failed to create environment: %w", err)
 	}
 
-	err = env.DeclareStream(streamName, &stream.StreamOptions{MaxLengthBytes: stream.ByteCapacity{}.GB(5), MaxAge: time.Duration(3600*24*7) * time.Second})
-	if err != nil {
-		logger.Error("failed to declare stream", zap.Error(err))
-		return nil, fmt.Errorf("failed to declare stream: %w", err)
-	}
 	producerOptions := stream.NewProducerOptions().
 		SetProducerName("rrproducer")
 
 	producer, err := env.NewProducer(streamName, producerOptions)
 	if err != nil {
-		logger.Error("failed to create producer", zap.Error(err))
-		return nil, fmt.Errorf("failed to create producer: %w", err)
+		return nil, fmt.Errorf("failed to connect to stream '%s': %w", streamName, err)
 	}
 
-	app := StreamProducer{
+	app := &StreamProducer{
 		Env:        env,
 		Producer:   producer,
 		StreamName: streamName,
-		Logger:     utils.GetLogger(),
+		Logger:     logger,
 	}
 
 	chPublishConfirm := producer.NotifyPublishConfirmation()
 	app.handlePublishConfirm(chPublishConfirm)
 
-	return &app, nil
+	return app, nil
 }
 
 func (sp *StreamProducer) handlePublishConfirm(confirms stream.ChannelPublishConfirm) {
@@ -83,70 +78,59 @@ func (sp *StreamProducer) handlePublishConfirm(confirms stream.ChannelPublishCon
 		for confirmed := range confirms {
 			for _, msg := range confirmed {
 				if msg.IsConfirmed() {
-					infoMsg := fmt.Sprintf("message confirmed -> %s", msg.GetMessage().GetData())
-					sp.Logger.Info(infoMsg,
-						zap.String("status", "stored"),
+					sp.Logger.Info("message confirmed and stored",
+						zap.String("stream", sp.StreamName),
 					)
 				} else {
-					errMsg := fmt.Sprintf("message confirmation failed -> %s", msg.GetMessage().GetData())
-					sp.Logger.Error(errMsg,
-						zap.String("status", "failed"),
+					sp.Logger.Error("message REJECTED by broker",
+						zap.String("stream", sp.StreamName),
 					)
 				}
+				// Decrease the counter of messages waiting for confirmation
+				atomic.AddInt32(&sp.pendingConfirms, -1)
 			}
 		}
 	}()
 }
 
-func (sp *StreamProducer) SendTask(task *models.TaskRequest) error {
-	taskJSON, err := json.Marshal(task)
-	if err != nil {
-		sp.Logger.Error("failed to marshal task", zap.Error(err))
-		return fmt.Errorf("failed to marshal task: %w", err)
+// WaitForConfirmations stays alive until all published messages are acknowledged
+func (sp *StreamProducer) WaitForConfirmations(timeout time.Duration) {
+	start := time.Now()
+	for atomic.LoadInt32(&sp.pendingConfirms) > 0 {
+		if time.Since(start) > timeout {
+			sp.Logger.Warn("timed out waiting for broker confirmation")
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
 	}
-	msg := amqp.NewMessage(taskJSON)
-	props := amqp.MessageProperties{
-		CorrelationID: uuid.NewString(),
-	}
-	msg.Properties = &props
-
-	if err = sp.Producer.Send(msg); err != nil {
-		sp.Logger.Error("failed to send task", zap.Error(err))
-		return fmt.Errorf("failed to send task: %w", err)
-	}
-	return nil
 }
 
-func (sp *StreamProducer) SendTaskJSON(task *models.TaskRequest) (err error) {
-	// Serialize to JSON
-	var taskJSON []byte
-	if taskJSON, err = json.Marshal(task); err != nil {
+func (sp *StreamProducer) SendTaskJSON(task *models.TaskRequest) error {
+	taskJSON, err := json.Marshal(task)
+	if err != nil {
 		return err
 	}
 
-	// Create message with JSON data
 	msg := amqp.NewMessage(taskJSON)
 	msg.Properties = &amqp.MessageProperties{
-		ContentType: "application/json", // ← Sets content type to JSON
+		ContentType: "application/json",
 	}
 
-	// Send to stream
+	atomic.AddInt32(&sp.pendingConfirms, 1)
 	return sp.Producer.Send(msg)
 }
 
-func (sp *StreamProducer) SendTaskProtobuf(task *models.TaskRequest) (err error) {
-	// Serialize to protobuf binary
-	var taskProto []byte
-	if taskProto, err = proto.Marshal(task); err != nil {
+func (sp *StreamProducer) SendTaskProtobuf(task *models.TaskRequest) error {
+	taskProto, err := proto.Marshal(task)
+	if err != nil {
 		return err
 	}
 
-	// Create message with protobuf data
 	msg := amqp.NewMessage(taskProto)
 	msg.Properties = &amqp.MessageProperties{
-		ContentType: "application/x-protobuf", // ← Sets content type to protobuf
+		ContentType: "application/x-protobuf",
 	}
 
-	// Send to stream
+	atomic.AddInt32(&sp.pendingConfirms, 1)
 	return sp.Producer.Send(msg)
 }

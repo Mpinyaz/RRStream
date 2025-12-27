@@ -2,7 +2,9 @@ use anyhow::Result;
 use dotenv::dotenv;
 use futures::StreamExt;
 use rabbitmq_stream_client::error::StreamCreateError;
-use rabbitmq_stream_client::types::{ByteCapacity, OffsetSpecification, ResponseCode};
+use rabbitmq_stream_client::types::{
+    ByteCapacity, Message as StreamMessage, OffsetSpecification, ResponseCode,
+};
 use rabbitmq_stream_client::Environment;
 use rrconsumer::config::Config;
 use rrconsumer::responseconsumer::send_task_response;
@@ -18,7 +20,7 @@ impl MessageProcessor {
         Self {}
     }
 
-    async fn process(&self, msg: &rabbitmq_stream_client::types::Message) -> anyhow::Result<()> {
+    async fn process(&self, msg: &StreamMessage) -> anyhow::Result<()> {
         let decoded = decode_message(msg)?;
         info!(
             "Processing message: task_id={}, correlation_id={:?}",
@@ -34,7 +36,6 @@ impl MessageProcessor {
     }
 }
 
-/// Ensure both streams exist (called ONCE at startup)
 async fn ensure_streams(env: &Environment, base: &str) -> Result<()> {
     let streams = [format!("{base}_requests"), format!("{base}_responses")];
 
@@ -64,6 +65,10 @@ async fn ensure_streams(env: &Environment, base: &str) -> Result<()> {
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    // Enable full backtraces for anyhow errors
+    std::env::set_var("RUST_LIB_BACKTRACE", "1");
+    std::env::set_var("RUST_BACKTRACE", "1");
+
     dotenv().ok();
     tracing_subscriber::fmt()
         .with_max_level(tracing::Level::INFO)
