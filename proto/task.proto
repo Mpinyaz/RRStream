@@ -11,11 +11,10 @@ enum TaskType {
   BATCH_TRANSFERS = 5;
   LOOKUP_TRANSFERS = 6;
 }
-// Main Task Request - Flattened for 2025 compatibility
 message TaskRequest {
   // --- Metadata ---
   string id = 1;
-  TaskType task_type = 2; // e.g., "create_account", "create_transfer", "batch_accounts"
+  TaskType task_type = 2;
   int64 created_at = 3;
   optional uint32 priority = 4;
   optional int32 retry_count = 5;

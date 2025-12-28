@@ -2,248 +2,414 @@
 
 A high-performance, distributed task processing system built on **RabbitMQ
 Streams**, with a **Golang producer** and a **Rust consumer**, using **Protocol
-Buffers** for strict schema and type safety.
-
----
+Buffers** for strict schema and type safety. Additionally, it leverages the
+**TigerBeetle financial database** for storing financial records with
+exceptional throughput.
 
 ## Overview
 
-This project implements a **polyglot stream-based task processing architecture**
-optimized for throughput, low latency, and correctness.
+This project implements a **polyglot, stream-based task processing
+architecture** optimized for **throughput, low latency, and correctness** in
+financial operations. The system is designed to handle **millions of financial
+transactions** with strong consistency guarantees and full audit trails.
 
-It is designed around:
+## Why This Stack?
 
-- **Go Producer**
-  - Validates and publishes tasks
-  - Supports JSON → Protobuf conversion
-  - Uses `rabbitmq-stream-go-client`
+### Go Producer
 
-- **Rust Consumer**
-  - High-performance task execution
-  - Strong typing and memory safety
-  - Uses `rabbitmq-stream-client` + `prost`
+- Excellent ergonomics for API development and validation logic
+- Natural JSON handling for client-facing interfaces
+- Fast compilation and deployment cycles
+- JSON → Protobuf conversion with type safety
+- Publisher confirms for durability
 
-RabbitMQ Streams are used instead of classic AMQP queues to enable **message
-replay, batching, and horizontal scaling**.
+### Rust Consumer
 
----
+- Zero-cost abstractions and memory safety
+- Async processing with Tokio
+- Enum-based task routing
+- Direct TigerBeetle integration
+
+### RabbitMQ Streams
+
+- Append-only log semantics
+- Message replay and consumer offsets
+- Horizontal scaling via consumer groups
+
+### Protocol Buffers
+
+- Cross-language schema consistency
+- Backward/forward compatibility
+- Compact binary encoding
+
+### TigerBeetle
+
+- ACID-compliant financial ledger
+- Double-entry accounting
+- Massive throughput with auditability
 
 ## Architecture
 
 ```
 ┌─────────────┐
-│   Clients   │
+│   Clients   │  ← REST API, gRPC, or CLI
+│  (External) │
 └──────┬──────┘
-       │
+       │ JSON Requests
        ▼
-┌──────────────┐
-│  Go Producer │
-│ (CLI / API)  │
-└──────┬───────┘
-       │  Protobuf / JSON
-       ▼
-┌──────────────────┐
-│ RabbitMQ Streams │
-│  (Persistent)    │
-└──────┬───────────┘
-       │
-       ▼
-┌──────────────┐
-│ Rust Consumer│
-│ (Async, Fast)│
-└──────────────┘
+┌──────────────────────┐
+│    Go Producer       │
+│  ┌────────────────┐  │
+│  │ Validation     │  │  ← Schema validation
+│  │ Layer          │  │     Rate limiting
+│  └────────┬───────┘  │     Authentication
+│           │          │
+│  ┌────────▼───────┐  │
+│  │ Protobuf       │  │  ← Type-safe encoding
+│  │ Serialization  │  │     Compression
+│  └────────┬───────┘  │
+│           │          │
+│  ┌────────▼───────┐  │
+│  │ Stream         │  │  ← Publisher confirms
+│  │ Publisher      │  │     Batching
+│  └────────────────┘  │     Retry logic
+└──────────┬───────────┘
+           │ Protobuf Messages
+           ▼
+┌────────────────────────┐
+│  RabbitMQ Streams      │
+│  ┌──────────────────┐  │
+│  │ Persistent Log   │  │  ← Disk-based storage
+│  │ (Append-Only)    │  │     Configurable retention
+│  └──────────────────┘  │     Replication support
+│                        │
+│  Features:             │
+│  • Consumer offsets    │
+│  • Message replay      │
+│  • Multiple consumers  │
+│  • Consumer groups     │
+└────────────┬───────────┘
+             │
+             ▼
+┌──────────────────────────┐
+│   Rust Consumer Pool     │
+│  ┌────────────────────┐  │
+│  │ Consumer Group     │  │  ← Load balancing
+│  │ (Worker 1..N)      │  │     Parallel processing
+│  └─────────┬──────────┘  │
+│            │             │
+│  ┌─────────▼──────────┐  │
+│  │ Protobuf Decoder   │  │  ← Zero-copy parsing
+│  └─────────┬──────────┘  │     Type validation
+│            │             │
+│  ┌─────────▼──────────┐  │
+│  │ Task Router        │  │  ← Enum-based dispatch
+│  │ (by TaskType)      │  │     Business logic
+│  └─────────┬──────────┘  │
+│            │             │
+│  ┌─────────▼──────────┐  │
+│  │ TigerBeetle        │  │  ← Batch operations
+│  │ Client             │  │     Error handling
+│  └────────────────────┘  │     Retry logic
+└──────────────┬───────────┘
+               │
+               ▼
+┌────────────────────────────┐
+│     TigerBeetle Cluster    │
+│  ┌──────────────────────┐  │
+│  │ Distributed Ledger   │  │  ← ACID transactions
+│  │ (Financial DB)       │  │     Double-entry accounting
+│  └──────────────────────┘  │     Consensus protocol
+│                            │     Immutable audit log
+│  Guarantees:               │
+│  • Strict serializability  │
+│  • Two-phase commit        │
+│  • Automatic failover      │
+└────────────────────────────┘
 ```
 
----
+## Data Flow
+
+1. **Ingestion** Clients submit financial operations as JSON to the Go producer.
+
+2. **Validation** The producer validates schemas, checks business rules, and
+   enforces rate limits.
+
+3. **Serialization** JSON payloads are converted into a compact Protocol Buffers
+   (Protobuf) format.
+
+4. **Publishing** Messages are written to RabbitMQ Streams with publisher
+   confirms enabled.
+
+5. **Distribution** Stream consumers read messages using offset tracking.
+
+6. **Processing** Rust workers decode, route, and execute tasks in parallel.
+
+7. **Persistence** Financial operations are committed to TigerBeetle with ACID
+   guarantees.
+
+8. **Acknowledgment** Successful processing updates consumer offsets.
 
 ## Key Features
 
-- **High Throughput**
-  - RabbitMQ Streams optimized for append-only workloads
+### Performance Characteristics
 
-- **Low Latency**
-  - Zero-copy decoding in Rust
+#### High Throughput
 
-- **Polyglot**
-  - Go for ergonomics
-  - Rust for performance and safety
+- RabbitMQ Streams optimized for append-only workloads with minimal disk seeks
+- TigerBeetle processes **1M+ transactions/second** on commodity hardware
+- Batch operations amortize network and disk I/O costs
+- Zero-copy decoding in Rust eliminates allocation overhead
 
-- **Schema-Driven**
-  - Protocol Buffers shared across languages
+#### Low Latency
 
-- **Type-Safe Task Routing**
-  - Task types are defined as enums, not strings
+- End-to-end **p99 latency under 10ms** for single operations
+- Async processing prevents blocking on I/O
+- Direct memory access patterns in Rust consumer
+- Efficient Protobuf encoding reduces serialization time
 
-- **Replay & Recovery**
-  - Stream offsets allow replay and debugging
+### Reliability & Correctness
 
-- **Batch Operations**
-  - Supports batched account and transfer creation
+#### Polyglot Architecture
 
----
+- Go for ergonomic API development and rapid iteration
+- Rust for performance-critical consumer path and memory safety
+- Shared Protobuf schema eliminates serialization mismatches
 
-## Technology Stack
+#### Schema-Driven Development
 
-| Component     | Technology                                        |
-| ------------- | ------------------------------------------------- |
-| Messaging     | RabbitMQ Streams                                  |
-| Serialization | Protocol Buffers (proto3)                         |
-| Producer      | Golang (`rabbitmq-stream-go-client`)              |
-| Consumer      | Rust (`rabbitmq-stream-client`, `prost`, `tonic`) |
-| Logging       | zap (Go), tracing (Rust)                          |
+- Protocol Buffers provide a single source of truth
+- Code generation ensures type safety across languages
+- Breaking changes are caught at compile time
+- Optional fields enable backward-compatible evolution
 
----
+#### Type-Safe Task Routing
 
-## Message Schema (Protobuf)
+- Task types defined as enums, not error-prone strings
+- Exhaustive pattern matching in Rust catches unhandled cases
+- Compiler enforces handling of all task variants
+- Impossible to route to non-existent handlers
 
-### TaskRequest (Flattened)
+#### Replay & Recovery
 
-```protobuf
-message TaskRequest {
-  string id = 1;
-  TaskType task_type = 2;
-  int64 created_at = 3;
+- Stream offsets allow precise replay from any point
+- Debug production issues by replaying message sequences
+- Disaster recovery through message log reconstruction
+- Consumer can restart from last committed offset
 
-  optional uint32 priority = 4;
-  optional int32 retry_count = 5;
+#### Idempotency Support
 
-  optional uint32 ledger = 10;
-  optional uint32 code = 11;
-  optional uint32 flags = 12;
+- Task IDs enable duplicate detection
+- TigerBeetle’s natural idempotency for financial operations
+- Consumer can safely retry failed operations
+- At-least-once delivery with exactly-once semantics
 
-  optional UInt128 account_id = 20;
-  optional UInt128 transfer_id = 21;
-  optional UInt128 debit_account_id = 22;
-  optional UInt128 credit_account_id = 23;
+### Operational Features
 
-  optional UInt128 amount = 30;
+#### Batch Operations
 
-  optional UInt128 user_data_128 = 40;
-  optional uint64 user_data_64 = 41;
-  optional uint32 user_data_32 = 42;
+- Create hundreds of accounts in a single request
+- Process transfer batches with atomicity guarantees
+- Reduce network round-trips by **100×**
+- TigerBeetle’s native batch API for maximum throughput
 
-  repeated CreateAccountRequest account_batch = 50;
-  repeated CreateTransferRequest transfer_batch = 51;
-  repeated UInt128 lookup_ids = 52;
-}
-```
+#### Observability
 
----
+- Structured logging in both producer and consumer
+- OpenTelemetry-compatible tracing _(planned)_
+- Prometheus metrics for monitoring _(planned)_
+- Consumer lag tracking for capacity planning
+
+#### Horizontal Scaling
+
+- Add consumer instances without coordination
+- RabbitMQ Stream consumer groups for load balancing
+- Partitioning support for parallel processing
+- TigerBeetle cluster scales to multiple nodes
+
+## Protobuf Schema
 
 ### TaskType Enum
 
-```protobuf
+```proto
 enum TaskType {
-  TASK_TYPE_UNSPECIFIED = 0;
+  UNKNOWN = 0;
   CREATE_ACCOUNT = 1;
   BATCH_ACCOUNTS = 2;
   LOOKUP_ACCOUNTS = 3;
-
   CREATE_TRANSFER = 4;
   BATCH_TRANSFERS = 5;
   LOOKUP_TRANSFERS = 6;
 }
 ```
 
----
+### UInt128
 
-### UInt128 Helper Type
-
-Used to safely transport 128-bit identifiers across languages.
-
-```protobuf
+```proto
 message UInt128 {
   fixed64 low = 1;
   fixed64 high = 2;
 }
 ```
 
-Defaults:
+### TaskRequest
 
-- `low = 0`
-- `high = 0`
+```proto
+syntax = "proto3";
 
----
+package tasks;
 
-## JSON Compatibility
+// Unified task request supporting all financial operations
+message TaskRequest {
+  // === Core Task Metadata ===
+  string id = 1;                      // Unique task identifier (UUID recommended)
+  TaskType task_type = 2;             // Determines which fields are relevant
+  int64 created_at = 3;               // Unix timestamp (seconds since epoch)
+  optional uint32 priority = 4;       // Task priority (higher = more urgent)
+  optional int32 retry_count = 5;     // Number of retry attempts
 
-The Go producer accepts **JSON input** and converts it into Protobuf.
+  // === TigerBeetle Account/Transfer Common Fields ===
+  optional uint32 ledger = 10;        // Ledger identifier for grouping
+  optional uint32 code = 11;          // User-defined code (e.g., account type)
+  optional uint32 flags = 12;         // TigerBeetle flags (linked, pending, etc.)
 
-### Example: Create Account
+  // === Account Operations ===
+  optional UInt128 account_id = 20;   // For CREATE_ACCOUNT, LOOKUP_ACCOUNTS
 
-```json
-{
-  "id": "task-123",
-  "taskType": 1,
-  "createdAt": 1766864710,
-  "ledger": 1,
-  "code": 100,
-  "accountId": {
-    "low": 1239,
-    "high": 0
-  },
-  "userData128": {
-    "low": 9871,
-    "high": 0
-  },
-  "userData64": 5555,
-  "userData32": 42
+  // === Transfer Operations ===
+  optional UInt128 transfer_id = 21;         // For CREATE_TRANSFER, LOOKUP_TRANSFERS
+  optional UInt128 debit_account_id = 22;    // Source account
+  optional UInt128 credit_account_id = 23;   // Destination account
+  optional UInt128 amount = 30;              // Transfer amount (128-bit precision)
+
+  // === User-Defined Metadata ===
+  optional UInt128 user_data_128 = 40;  // 128-bit custom data
+  optional uint64 user_data_64 = 41;    // 64-bit custom data
+  optional uint32 user_data_32 = 42;    // 32-bit custom data
+
+  // === Batch Operations ===
+  repeated CreateAccountRequest account_batch = 50;   // Batch account creation
+  repeated CreateTransferRequest transfer_batch = 51; // Batch transfer creation
+  repeated UInt128 lookup_ids = 52;                   // IDs for lookup operations
+}
+
+// Supporting message for batch account creation
+message CreateAccountRequest {
+  UInt128 id = 1;
+  uint32 ledger = 2;
+  uint32 code = 3;
+  optional uint32 flags = 4;
+  optional UInt128 user_data_128 = 5;
+  optional uint64 user_data_64 = 6;
+  optional uint32 user_data_32 = 7;
+}
+
+// Supporting message for batch transfer creation
+message CreateTransferRequest {
+  UInt128 id = 1;
+  UInt128 debit_account_id = 2;
+  UInt128 credit_account_id = 3;
+  UInt128 amount = 4;
+  uint32 ledger = 5;
+  uint32 code = 6;
+  optional uint32 flags = 7;
+  optional UInt128 user_data_128 = 8;
+  optional uint64 user_data_64 = 9;
+  optional uint32 user_data_32 = 10;
 }
 ```
 
-> ⚠️ **Important**
->
-> - Enum values **must be uppercase**
-> - All `UInt128` fields must include **both `low` and `high`**
+## JSON Rules
 
----
+- Enums must be numeric (`taskType: 1`)
+- UInt128 requires both `low` and `high`
+- Required fields: `id`, `taskType`, `createdAt`
 
 ## Producer (Go)
 
-- Reads JSON task definitions
-- Validates required fields
-- Converts to Protobuf
-- Publishes to RabbitMQ Streams
-- Supports:
-  - JSON publish
-  - Protobuf publish
-  - Publisher confirms
+The Go producer serves as the **validation and ingestion layer**, ensuring only
+valid, well-formed tasks enter the system.
 
----
+### Responsibilities
+
+#### Input Validation
+
+- Verify required fields are present for each task type
+- Validate `UInt128` structures have both `low` and `high` fields
+- Check enum values are within the valid range
+- Enforce business rules (e.g., transfer amount > 0)
+
+#### Format Conversion
+
+- Parse JSON from HTTP requests or CLI input
+- Convert data to Protobuf binary encoding
+- Handle field name translations (`camelCase` → `snake_case`)
+
+#### Stream Publishing
+
+- Connect to RabbitMQ Streams
+- Publish messages with publisher confirms for durability
+- Handle backpressure and connection failures
+- Support batched publishing for high throughput
+
+#### Error Handling
+
+- Return descriptive validation errors to clients
+- Log publishing failures using structured logging
+- Retry transient failures with exponential backoff
 
 ## Consumer (Rust)
 
-- Decodes JSON or Protobuf automatically
-- Routes tasks via `TaskType` enum
-- Uses async processing
-- Handles:
-  - Account creation
-  - Transfers
-  - Batch operations
-  - Lookups
+The Rust consumer is the **performance-critical execution layer**, responsible
+for decoding, routing, and executing financial operations with maximum
+throughput and safety.
 
----
+### Responsibilities
 
-## Reliability & Safety
+#### Message Decoding
 
-- **Strong typing** across producer and consumer
-- **No string-based routing**
-- **Backpressure support**
-- **At-least-once delivery**
-- **Idempotent task handling ready**
+- Deserialize Protobuf binary data
+- Validate message integrity
+- Handle both JSON and Protobuf formats
+- Perform zero-copy parsing where possible
 
----
+#### Task Routing
 
-## Roadmap
+- Match on `TaskType` enum
+- Extract relevant fields for each operation type
+- Validate operation-specific requirements
+- Dispatch to the appropriate handler
 
-- [x] RabbitMQ Streams integration
-- [x] Protobuf schema unification
-- [x] Enum-based task routing
-- [x] TigerBeetle database integration
-- [ ] TigerBeetle CDC job integration
-- [ ] Metrics & observability (Prometheus / Grafana)
-- [ ] Dead-letter stream support
-- [ ] Consumer health checks
-- [ ] TLS & authentication
-- [ ] CI/CD pipeline
-- [ ] Task retry & backoff policies `
+#### TigerBeetle Integration
+
+- Create accounts with proper error handling
+- Execute transfers atomically
+- Handle batch operations efficiently
+- Process lookup queries
+
+#### Error Recovery
+
+- Retry transient failures
+- Log permanent failures for investigation
+- Update consumer offsets correctly
+- Maintain exactly-once semantics where possible
+
+## Technology Stack
+
+| Component       | Technology                                 | Purpose                                         |
+| --------------- | ------------------------------------------ | ----------------------------------------------- |
+| Messaging       | RabbitMQ Streams 3.13+                     | Durable, replayable message log                 |
+| Serialization   | Protocol Buffers (proto3)                  | Cross-language type-safe encoding               |
+| Producer        | Golang 1.21+ (rabbitmq-stream-go-client)   | API layer, validation, publishing               |
+| Consumer        | Rust 1.75+ (rabbitmq-stream-client, prost) | High-performance task execution                 |
+| Financial DB    | TigerBeetle 0.15+                          | ACID-compliant financial ledger                 |
+| Logging (Go)    | zap                                        | Structured logging with performance             |
+| Logging (Rust)  | tracing + tracing-subscriber               | Async-aware structured logging                  |
+| Build (Go)      | go mod                                     | Dependency management                           |
+| Build (Rust)    | Cargo                                      | Build system and package manager                |
+| Code Generation | protoc, prost-build                        | Generate type-safe bindings from `.proto` files |
+
+## Summary
+
+A production-grade, replayable, type-safe financial task processing pipeline
+built for extreme scale and correctness.

@@ -65,10 +65,6 @@ async fn ensure_streams(env: &Environment, base: &str) -> Result<()> {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    // Enable full backtraces for anyhow errors
-    std::env::set_var("RUST_LIB_BACKTRACE", "1");
-    std::env::set_var("RUST_BACKTRACE", "1");
-
     dotenv().ok();
     tracing_subscriber::fmt()
         .with_max_level(tracing::Level::INFO)
