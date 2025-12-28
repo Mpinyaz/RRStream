@@ -1,17 +1,17 @@
-use crate::responseconsumer::get_tb_client;
 use crate::task::{
     Account, AccountResult, TaskRequest, TaskResponse, TaskType, Transfer, TransferResult, UInt128,
 };
+use crate::{invalid_task_format, services::get_tb_client};
 use anyhow::Result;
 use prost::Message as ProstMessage;
 use rabbitmq_stream_client::types::Message as StreamMessage;
 use serde_json::to_vec as json_serialize;
 use std::str::FromStr;
 use std::time::{SystemTime, UNIX_EPOCH};
+use tigerbeetle_unofficial::error::{CreateAccountsError, CreateTransfersError};
 use tigerbeetle_unofficial::{Account as TBAccount, Transfer as TBTransfer};
-use tracing::info;
+use tracing::{error, info};
 use uuid::Uuid;
-
 /* ----------------------------- Utilities ----------------------------- */
 
 fn system_time_to_u64(ts: SystemTime) -> u64 {
@@ -171,82 +171,200 @@ async fn handle_create_account(task: &TaskRequest) -> Result<TaskResponse> {
     let id = proto_to_uint128(
         task.account_id
             .as_ref()
-            .ok_or_else(|| anyhow::anyhow!("account_id required"))?,
+            .ok_or_else(|| invalid_task_format("Missing account_id"))?,
     );
     info!("Account id decoded: {}", id);
 
     let ledger = task
         .ledger
-        .ok_or_else(|| anyhow::anyhow!("ledger required"))?;
+        .ok_or_else(|| invalid_task_format("Missing ledger"))?;
+
     let code: u16 = task
         .code
-        .ok_or_else(|| anyhow::anyhow!("code required"))?
+        .ok_or_else(|| invalid_task_format("Missing code"))?
         .try_into()?;
+
     info!("Ledger={}, Code={}", ledger, code);
 
     let mut account = TBAccount::new(id, ledger, code);
 
     if let Some(v) = &task.user_data_128 {
         account = account.with_user_data_128(proto_to_uint128(v));
-        info!("Applied user_data_128={}", proto_to_uint128(v));
     }
     if let Some(v) = task.user_data_64 {
         account = account.with_user_data_64(v);
-        info!("Applied user_data_64={}", v);
     }
     if let Some(v) = task.user_data_32 {
         account = account.with_user_data_32(v);
-        info!("Applied user_data_32={}", v);
     }
 
-    get_tb_client()
+    let result = get_tb_client()
         .await?
         .lock()
         .await
         .create_accounts(vec![account])
-        .await?;
-    info!("Account created successfully for id={}", id);
+        .await;
 
-    Ok(TaskResponse {
-        id: task.id.clone(),
-        task_type: task.task_type.to_string(),
-        success: true,
-        message: "Account created".into(),
-        account_result: None,
-        transfer_result: None,
-    })
+    match result {
+        Ok(()) => {
+            // Success - account created
+            info!("Account created successfully for id={}", id);
+            Ok(TaskResponse {
+                id: task.id.clone(),
+                task_type: task.task_type.to_string(),
+                success: true,
+                message: "Account created".into(),
+                account_result: None,
+                transfer_result: None,
+            })
+        }
+        Err(CreateAccountsError::Api(api_error)) => {
+            // Extract individual errors from the API error
+
+            let error_msg = api_error
+                .as_slice()
+                .iter()
+                .map(|individual_error| {
+                    // Individual error likely has .error() method returning CreateAccountError
+                    // format_account_error(&individual_error.inner())
+                    individual_error.inner().to_string()
+                })
+                .collect::<Vec<_>>()
+                .join(";");
+
+            error!("Failed to create account id={}: {}", id, error_msg);
+
+            Ok(TaskResponse {
+                id: task.id.clone(),
+                task_type: task.task_type.to_string(),
+                success: false,
+                message: error_msg,
+                account_result: None,
+                transfer_result: None,
+            })
+        }
+        Err(e) => {
+            // Fallback for any other error variant
+            let error_msg = format!("TigerBeetle error: {e}");
+            error!("{}", error_msg);
+            Ok(TaskResponse {
+                id: task.id.clone(),
+                task_type: task.task_type.to_string(),
+                success: false,
+                message: error_msg,
+                account_result: None,
+                transfer_result: None,
+            })
+        }
+    }
 }
+
+/* ----------------------------- Account Batch ----------------------------- */
 
 async fn handle_create_account_batch(task: &TaskRequest) -> Result<TaskResponse> {
     info!("handle_create_account_batch called for task_id={}", task.id);
+
+    if task.account_batch.is_empty() {
+        return Err(invalid_task_format("account_batch cannot be empty"));
+    }
+
     let tb = get_tb_client().await?;
-    let mut accounts = Vec::new();
+    let mut accounts = Vec::with_capacity(task.account_batch.len());
 
     for (i, req) in task.account_batch.iter().enumerate() {
-        let id = proto_to_uint128(req.id.as_ref().unwrap());
+        let id =
+            proto_to_uint128(req.id.as_ref().ok_or_else(|| {
+                invalid_task_format(format!("Missing id for account_batch[{i}]"))
+            })?);
         info!("Processing batch account {} with id={}", i, id);
-        let mut acc = TBAccount::new(id, req.ledger, req.code as u16);
+
+        let ledger = req.ledger;
+        let code: u16 = req.code.try_into().map_err(|_| {
+            invalid_task_format(format!("code exceeds u16 range for account_batch[{i}]"))
+        })?;
+
+        let mut acc = TBAccount::new(id, ledger, code);
 
         if let Some(v) = &req.user_data_128 {
             acc = acc.with_user_data_128(proto_to_uint128(v));
-            info!("Applied user_data_128={}", proto_to_uint128(v));
+        }
+        if let Some(v) = req.user_data_64 {
+            acc = acc.with_user_data_64(v);
+        }
+        if let Some(v) = req.user_data_32 {
+            acc = acc.with_user_data_32(v);
         }
 
         accounts.push(acc);
     }
 
-    tb.lock().await.create_accounts(accounts).await?;
-    info!("Batch accounts created successfully");
+    let result = tb.lock().await.create_accounts(accounts).await;
 
-    Ok(TaskResponse {
-        id: task.id.clone(),
-        task_type: task.task_type.to_string(),
-        success: true,
-        message: "Account batch created".into(),
-        account_result: None,
-        transfer_result: None,
-    })
+    match result {
+        Ok(()) => {
+            info!("Batch accounts created successfully");
+            Ok(TaskResponse {
+                id: task.id.clone(),
+                task_type: task.task_type.to_string(),
+                success: true,
+                message: format!("Created {} accounts", task.account_batch.len()),
+                account_result: None,
+                transfer_result: None,
+            })
+        }
+        Err(CreateAccountsError::Api(api_error)) => {
+            // Extract individual errors with account indices
+            let error_msg = api_error
+                .as_slice()
+                .iter()
+                .map(|individual_error| {
+                    format!(
+                        "Account[{}]: {}",
+                        individual_error.index(),
+                        individual_error.inner()
+                    )
+                })
+                .collect::<Vec<_>>()
+                .join("; ");
+
+            error!("Failed to create account batch: {}", error_msg);
+
+            Ok(TaskResponse {
+                id: task.id.clone(),
+                task_type: task.task_type.to_string(),
+                success: false,
+                message: error_msg,
+                account_result: None,
+                transfer_result: None,
+            })
+        }
+        Err(CreateAccountsError::Send(send_error)) => {
+            let error_msg = format!("Network/Transport Error: {send_error}");
+            error!("{}", error_msg);
+            Ok(TaskResponse {
+                id: task.id.clone(),
+                task_type: task.task_type.to_string(),
+                success: false,
+                message: error_msg,
+                account_result: None,
+                transfer_result: None,
+            })
+        }
+        Err(e) => {
+            let error_msg = format!("Failed to create account batch: {e}");
+            error!("{}", error_msg);
+            Ok(TaskResponse {
+                id: task.id.clone(),
+                task_type: task.task_type.to_string(),
+                success: false,
+                message: error_msg,
+                account_result: None,
+                transfer_result: None,
+            })
+        }
+    }
 }
+/* ----------------------------- Lookup Accounts ----------------------------- */
 
 async fn handle_lookup_accounts(task: &TaskRequest) -> Result<TaskResponse> {
     info!("handle_lookup_accounts called for task_id={}", task.id);
@@ -291,23 +409,64 @@ async fn handle_lookup_accounts(task: &TaskRequest) -> Result<TaskResponse> {
     })
 }
 
-/* ----------------------------- Transfers ----------------------------- */
+/* ----------------------------- Create Transfer ----------------------------- */
 
 async fn handle_create_transfer(task: &TaskRequest) -> Result<TaskResponse> {
     info!("handle_create_transfer called for task_id={}", task.id);
-    let transfer_id = Uuid::new_v4().as_u128();
-    info!("Generated transfer_id={}", transfer_id);
 
-    let debit = proto_to_uint128(task.debit_account_id.as_ref().unwrap());
-    let credit = proto_to_uint128(task.credit_account_id.as_ref().unwrap());
-    let amount = proto_to_uint128(task.amount.as_ref().unwrap());
-    info!(
-        "Creating transfer debit={} credit={} amount={}",
-        debit, credit, amount
+    let debit = proto_to_uint128(
+        task.debit_account_id
+            .as_ref()
+            .ok_or_else(|| invalid_task_format("Missing debit_account_id"))?,
     );
 
-    let ledger = task.ledger.unwrap();
-    let code: u16 = task.code.unwrap().try_into()?;
+    let credit = proto_to_uint128(
+        task.credit_account_id
+            .as_ref()
+            .ok_or_else(|| invalid_task_format("Missing credit_account_id"))?,
+    );
+
+    let amount = proto_to_uint128(
+        task.amount
+            .as_ref()
+            .ok_or_else(|| invalid_task_format("Missing amount"))?,
+    );
+
+    // Validate amount is non-zero
+    if amount == 0 {
+        return Err(invalid_task_format(
+            "Transfer amount must be greater than 0",
+        ));
+    }
+
+    // Validate accounts are different
+    if debit == credit {
+        return Err(invalid_task_format(
+            "Debit and credit accounts must be different",
+        ));
+    }
+
+    let ledger = task
+        .ledger
+        .ok_or_else(|| invalid_task_format("Missing ledger"))?;
+
+    let code: u16 = task
+        .code
+        .ok_or_else(|| invalid_task_format("Missing code"))?
+        .try_into()
+        .map_err(|_| invalid_task_format("code exceeds u16 range"))?;
+
+    // Use provided transfer_id or generate new one
+    let transfer_id = task
+        .transfer_id
+        .as_ref()
+        .map(proto_to_uint128)
+        .unwrap_or_else(|| Uuid::new_v4().as_u128());
+
+    info!(
+        "Creating transfer id={} debit={} credit={} amount={}",
+        transfer_id, debit, credit, amount
+    );
 
     let transfer = TBTransfer::new(transfer_id)
         .with_debit_account_id(debit)
@@ -316,99 +475,287 @@ async fn handle_create_transfer(task: &TaskRequest) -> Result<TaskResponse> {
         .with_ledger(ledger)
         .with_code(code);
 
-    get_tb_client()
+    let result = get_tb_client()
         .await?
         .lock()
         .await
         .create_transfers(vec![transfer])
-        .await?;
-    info!("Transfer created successfully with id={}", transfer_id);
+        .await;
 
-    Ok(TaskResponse {
-        id: task.id.clone(),
-        task_type: task.task_type.clone().to_string(),
-        success: true,
-        message: "Transfer created".into(),
-        account_result: None,
-        transfer_result: None,
-    })
+    match result {
+        Ok(()) => {
+            info!("Transfer created successfully with id={}", transfer_id);
+            Ok(TaskResponse {
+                id: task.id.clone(),
+                task_type: task.task_type.to_string(),
+                success: true,
+                message: "Transfer created".into(),
+                account_result: None,
+                transfer_result: None,
+            })
+        }
+
+        Err(CreateTransfersError::Api(api_error)) => {
+            let error_msg = api_error
+                .as_slice()
+                .iter()
+                .map(|individual_error| {
+                    // Individual error likely has .error() method returning CreateAccountError
+                    // format_account_error(&individual_error.inner())
+                    individual_error.inner().to_string()
+                })
+                .collect::<Vec<_>>()
+                .join(";");
+
+            error!(
+                "Failed to create transfer for transfer id={}: {}",
+                transfer_id, error_msg
+            );
+
+            Ok(TaskResponse {
+                id: task.id.clone(),
+                task_type: task.task_type.to_string(),
+                success: false,
+                message: error_msg,
+                account_result: None,
+                transfer_result: None,
+            })
+        }
+        Err(CreateTransfersError::Send(send_error)) => {
+            let error_msg = format!("Network/Transport Error: {send_error}");
+            error!("{}", error_msg);
+            Ok(TaskResponse {
+                id: task.id.clone(),
+                task_type: task.task_type.to_string(),
+                success: false,
+                message: error_msg,
+                account_result: None,
+                transfer_result: None,
+            })
+        }
+        // Fallback for NewClientError or any other unexpected errors
+        Err(e) => {
+            let error_msg = format!("Unexpected Error: {e}");
+            error!("{}", error_msg);
+            Ok(TaskResponse {
+                id: task.id.clone(),
+                task_type: task.task_type.to_string(),
+                success: false,
+                message: error_msg,
+                account_result: None,
+                transfer_result: None,
+            })
+        }
+    }
 }
+
+/* ----------------------------- Transfer Batch ----------------------------- */
 
 async fn handle_create_transfer_batch(task: &TaskRequest) -> Result<TaskResponse> {
     info!(
         "handle_create_transfer_batch called for task_id={}",
         task.id
     );
+
+    if task.transfer_batch.is_empty() {
+        return Err(invalid_task_format("transfer_batch cannot be empty"));
+    }
+
     let tb = get_tb_client().await?;
-    let mut transfers = Vec::new();
+    let mut transfers = Vec::with_capacity(task.transfer_batch.len());
 
     for (i, req) in task.transfer_batch.iter().enumerate() {
-        let id = Uuid::new_v4().as_u128();
-        info!("Processing transfer batch {} with generated id={}", i, id);
+        let prefix = format!("transfer_batch[{i}]");
 
-        let t = TBTransfer::new(id)
-            .with_debit_account_id(proto_to_uint128(req.debit_account_id.as_ref().unwrap()))
-            .with_credit_account_id(proto_to_uint128(req.credit_account_id.as_ref().unwrap()))
-            .with_amount(proto_to_uint128(req.amount.as_ref().unwrap()))
-            .with_ledger(req.ledger.unwrap_or(0))
-            .with_code(req.code.unwrap_or(0) as u16);
+        let debit_account_id =
+            proto_to_uint128(req.debit_account_id.as_ref().ok_or_else(|| {
+                invalid_task_format(format!("{prefix}.debit_account_id missing"))
+            })?);
+
+        let credit_account_id =
+            proto_to_uint128(req.credit_account_id.as_ref().ok_or_else(|| {
+                invalid_task_format(format!("{prefix}.credit_account_id missing"))
+            })?);
+
+        let amount = proto_to_uint128(
+            req.amount
+                .as_ref()
+                .ok_or_else(|| invalid_task_format(format!("{prefix}.amount missing")))?,
+        );
+
+        if amount == 0 {
+            return Err(invalid_task_format(format!(
+                "{prefix}: amount must be greater than 0"
+            )));
+        }
+
+        if debit_account_id == credit_account_id {
+            return Err(invalid_task_format(format!(
+                "{prefix}: debit and credit accounts must be different"
+            )));
+        }
+
+        let transfer_id = req
+            .id
+            .as_ref()
+            .map(proto_to_uint128)
+            .unwrap_or_else(|| Uuid::new_v4().as_u128());
+
+        info!("Processing transfer batch {} with id={}", i, transfer_id);
+
+        let ledger = req.ledger.unwrap_or(0);
+        let code: u16 = req
+            .code
+            .unwrap_or(0)
+            .try_into()
+            .map_err(|_| invalid_task_format(format!("{prefix}.code exceeds u16 range")))?;
+
+        let t = TBTransfer::new(transfer_id)
+            .with_debit_account_id(debit_account_id)
+            .with_credit_account_id(credit_account_id)
+            .with_amount(amount)
+            .with_ledger(ledger)
+            .with_code(code);
 
         transfers.push(t);
     }
 
-    tb.lock().await.create_transfers(transfers).await?;
-    info!("Batch transfers created successfully");
+    let result = tb.lock().await.create_transfers(transfers).await;
 
-    Ok(TaskResponse {
-        id: task.id.clone(),
-        task_type: task.task_type.to_string(),
-        success: true,
-        message: "Transfer batch created".into(),
-        account_result: None,
-        transfer_result: None,
-    })
+    match result {
+        Ok(()) => {
+            info!("Batch transfers created successfully");
+            Ok(TaskResponse {
+                id: task.id.clone(),
+                task_type: task.task_type.to_string(),
+                success: true,
+                message: format!("Created {} transfers", task.transfer_batch.len()),
+                account_result: None,
+                transfer_result: None,
+            })
+        }
+
+        Err(CreateTransfersError::Api(api_error)) => {
+            // Extract indexed per-transfer errors
+            let error_msg = api_error
+                .as_slice()
+                .iter()
+                .map(|individual_error| {
+                    format!(
+                        "Transfer[{}]: {}",
+                        individual_error.index(),
+                        individual_error.inner()
+                    )
+                })
+                .collect::<Vec<_>>()
+                .join("; ");
+
+            error!("Failed to create transfer batch: {}", error_msg);
+
+            Ok(TaskResponse {
+                id: task.id.clone(),
+                task_type: task.task_type.to_string(),
+                success: false,
+                message: error_msg,
+                account_result: None,
+                transfer_result: None,
+            })
+        }
+
+        Err(CreateTransfersError::Send(send_error)) => {
+            let error_msg = format!("Network/Transport Error: {send_error}");
+            error!("{}", error_msg);
+
+            Ok(TaskResponse {
+                id: task.id.clone(),
+                task_type: task.task_type.to_string(),
+                success: false,
+                message: error_msg,
+                account_result: None,
+                transfer_result: None,
+            })
+        }
+
+        Err(e) => {
+            let error_msg = format!("Unexpected error creating transfer batch: {e}");
+            error!("{}", error_msg);
+
+            Ok(TaskResponse {
+                id: task.id.clone(),
+                task_type: task.task_type.to_string(),
+                success: false,
+                message: error_msg,
+                account_result: None,
+                transfer_result: None,
+            })
+        }
+    }
 }
+
+/* ----------------------------- Lookup Transfers ----------------------------- */
 
 async fn handle_lookup_transfers(task: &TaskRequest) -> Result<TaskResponse> {
     info!("handle_lookup_transfers called for task_id={}", task.id);
-    let ids: Vec<u128> = task.lookup_ids.iter().map(proto_to_uint128).collect();
-    info!("Looking up {} transfers: {:?}", ids.len(), ids);
 
-    let transfers = get_tb_client()
+    if task.lookup_ids.is_empty() {
+        return Err(invalid_task_format("lookup_ids cannot be empty"));
+    }
+
+    let ids: Vec<u128> = task.lookup_ids.iter().map(proto_to_uint128).collect();
+    info!("Looking up {} transfers", ids.len());
+
+    let result = get_tb_client()
         .await?
         .lock()
         .await
         .lookup_transfers(ids)
-        .await?;
-    info!("Lookup completed, {} transfers found", transfers.len());
+        .await;
 
-    let proto: Vec<Transfer> = transfers
-        .into_iter()
-        .map(|t| Transfer {
-            id: Some(uint128_to_proto(t.id())),
-            debit_account_id: Some(uint128_to_proto(t.debit_account_id())),
-            credit_account_id: Some(uint128_to_proto(t.credit_account_id())),
-            amount: Some(uint128_to_proto(t.amount())),
-            ledger: t.ledger(),
-            code: t.code() as u32,
-            flags: t.flags().bits() as u32,
-            timestamp: system_time_to_u64(t.timestamp()),
-        })
-        .collect();
+    match result {
+        Ok(transfers) => {
+            info!("Lookup completed, {} transfers found", transfers.len());
 
-    let count = i32::try_from(proto.len()).unwrap_or(i32::MAX);
+            let proto_transfers: Vec<Transfer> = transfers
+                .into_iter()
+                .map(|t| Transfer {
+                    id: Some(uint128_to_proto(t.id())),
+                    debit_account_id: Some(uint128_to_proto(t.debit_account_id())),
+                    credit_account_id: Some(uint128_to_proto(t.credit_account_id())),
+                    amount: Some(uint128_to_proto(t.amount())),
+                    ledger: t.ledger(),
+                    code: t.code() as u32,
+                    flags: t.flags().bits() as u32,
+                    timestamp: system_time_to_u64(t.timestamp()),
+                })
+                .collect();
 
-    Ok(TaskResponse {
-        id: task.id.clone(),
-        task_type: task.task_type.to_string(),
-        success: true,
-        message: "Transfers found".into(),
-        account_result: None,
-        transfer_result: Some(TransferResult {
-            count,
-            transfers: proto,
-        }),
-    })
+            let count = proto_transfers.len() as i32;
+
+            Ok(TaskResponse {
+                id: task.id.clone(),
+                task_type: task.task_type.to_string(),
+                success: true,
+                message: format!("Found {count} transfers"),
+                account_result: None,
+                transfer_result: Some(TransferResult {
+                    count,
+                    transfers: proto_transfers,
+                }),
+            })
+        }
+        Err(e) => {
+            let error_msg = format!("Failed to lookup transfers: {e}");
+            error!("{}", error_msg);
+            Ok(TaskResponse {
+                id: task.id.clone(),
+                task_type: task.task_type.to_string(),
+                success: false,
+                message: error_msg,
+                account_result: None,
+                transfer_result: None,
+            })
+        }
+    }
 }
 
 /* ----------------------------- Encode Response ----------------------------- */

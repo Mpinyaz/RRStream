@@ -7,7 +7,7 @@ use rabbitmq_stream_client::types::{
 };
 use rabbitmq_stream_client::Environment;
 use rrconsumer::config::Config;
-use rrconsumer::responseconsumer::send_task_response;
+use rrconsumer::services::send_task_response;
 use rrconsumer::worker::{decode_message, process_task};
 use tokio::signal;
 use tokio::task;
