@@ -4,34 +4,10 @@ ifneq ("$(wildcard .env)","")
     export $(shell sed 's/=.*//' .env)
 endif
 
-.PHONY: setup-db start-db setup-rabbitmq start-cdc clean clean-bin help install-db
+.PHONY: setup-db start-db setup-rabbitmq start-cdc clean clean-bin help install-db proto proto-go proto-rust build-producer build-all run-producer
 
-# --- Protobuf Configuration ---
-PROTO_DIR = ./proto
-PROTO_FILE = $(PROTO_DIR)/task.proto
-PROTO_OUT_DIR = ./producer/pkg/models/proto
-
-# --- Protobuf Generation ---
-
-proto: proto-go proto-rust ## Generate protobuf code for both Go and Rust
-
-proto-go:
-	@echo "Generating protobuf files..."
-	@protoc \
-		-I ./proto \
-		--go_out=producer/pkg/models/proto \
-		--go_opt=paths=source_relative \
-		--go-grpc_out=producer/pkg/models/proto \
-		--go-grpc_opt=paths=source_relative \
-		./proto/task.proto
-
-	@echo "✓ Protobuf generation complete"
-
-proto-rust: ## Generate Rust protobuf code
-	@echo "🔨 Generating Rust protobuf code..."
-	@cd ../consumer && cargo build
-	@echo "✅ Rust protobuf code generated (via build.rs)"
 # --- Configuration ---
+APP_NAME ?= rrstreamer
 CLUSTER_ID ?= 0
 REPLICA_ID ?= 0
 TB_ADDRESSES ?= 3000
@@ -40,25 +16,32 @@ BIN_DIR = ./bin
 TB_BIN = $(BIN_DIR)/tigerbeetle
 DATA_FILE = $(DB_DIR)/0_0.tigerbeetle
 
+# Project Structure
+PRODUCER_DIR = ./producer
+PROTO_DIR = ./proto
+PROTO_FILE = $(PROTO_DIR)/task.proto
+# This is the path relative to the root for cleanups/checks
+PROTO_OUT_DIR = $(PRODUCER_DIR)/pkg/models/proto
+
 # Detect OS for TigerBeetle download
 UNAME_S := $(shell uname -s)
 UNAME_M := $(shell uname -m)
 
 ifeq ($(UNAME_S),Linux)
     ifeq ($(UNAME_M),x86_64)
-        TB_URL = https://github.com/tigerbeetle/tigerbeetle/releases/latest/download/tigerbeetle-x86_64-linux.zip
+        TB_URL = github.com
     else ifeq ($(UNAME_M),aarch64)
-        TB_URL = https://github.com/tigerbeetle/tigerbeetle/releases/latest/download/tigerbeetle-aarch64-linux.zip
+        TB_URL = github.com
     endif
 else ifeq ($(UNAME_S),Darwin)
     ifeq ($(UNAME_M),arm64)
-        TB_URL = https://github.com/tigerbeetle/tigerbeetle/releases/latest/download/tigerbeetle-aarch64-macos.zip
+        TB_URL = github.com
     else
-        TB_URL = https://github.com/tigerbeetle/tigerbeetle/releases/latest/download/tigerbeetle-x86_64-macos.zip
+        TB_URL = github.com
     endif
 endif
 
-# RabbitMQ Mappings from your .env
+# RabbitMQ Mappings from .env
 RMQ_HOST = $(RABBITMQ_ADVERTISED_HOST)
 RMQ_USER = $(RABBITMQ_DEFAULT_USER)
 RMQ_PASS = $(RABBITMQ_DEFAULT_PASS)
@@ -66,7 +49,28 @@ RMQ_API_URL = http://$(RMQ_HOST):15672/api
 EXCHANGE = $(TB_EXCHANGE)
 RES_STREAM = $(RABBITMQ_STREAM_NAME)_responses
 
-# --- 1. TigerBeetle Installation ---
+# --- 1. Protobuf Generation ---
+
+proto: proto-go proto-rust ## Generate protobuf code for both Go and Rust
+
+proto-go: ## Generate Go protobuf code
+	@echo "Generating Go protobuf files..."
+	@mkdir -p $(PROTO_OUT_DIR)
+	@protoc \
+		-I ./proto \
+		--go_out=$(PRODUCER_DIR) \
+		--go_opt=paths=source_relative \
+		--go-grpc_out=$(PRODUCER_DIR) \
+		--go-grpc_opt=paths=source_relative \
+		$(PROTO_FILE)
+	@echo "✓ Go protobuf generation complete"
+
+proto-rust: ## Generate Rust protobuf code
+	@echo "🔨 Generating Rust protobuf code..."
+	@cd ../consumer && cargo build
+	@echo "✅ Rust protobuf code generated (via build.rs)"
+
+# --- 2. TigerBeetle Installation ---
 
 install-db: ## Download and install TigerBeetle binary
 	@echo "🔍 Checking for existing TigerBeetle installation..."
@@ -85,10 +89,10 @@ install-db: ## Download and install TigerBeetle binary
 		$(TB_BIN) version; \
 	fi
 
-# --- 2. TigerBeetle Database ---
+# --- 3. TigerBeetle Database ---
 
 setup-db: install-db ## Format the TigerBeetle data file
-	@echo "🗄️  Setting up TigerBeetle database..."
+	@echo "🗄️ Setting up TigerBeetle database..."
 	@mkdir -p $(DB_DIR)
 	$(TB_BIN) format --cluster=$(CLUSTER_ID) --replica=$(REPLICA_ID) --replica-count=1 --development $(DATA_FILE)
 	@echo "✅ Database formatted successfully"
@@ -97,20 +101,20 @@ start-db: ## Start the TigerBeetle database server
 	@echo "🚀 Starting TigerBeetle server on port $(TB_ADDRESSES)..."
 	$(TB_BIN) start --addresses=$(TB_ADDRESSES) --development $(DATA_FILE)
 
-# --- 3. RabbitMQ Infrastructure ---
+# --- 4. RabbitMQ Infrastructure ---
 
 setup-rabbitmq: ## Setup the AMQP Exchange and Bind it to the Response Stream
 	@echo "🐰 Setting up RabbitMQ infrastructure..."
-	@echo "1️⃣  Creating CDC Fanout Exchange: $(EXCHANGE)"
+	@echo "1️⃣ Creating CDC Fanout Exchange: $(EXCHANGE)"
 	@curl -s -u $(RMQ_USER):$(RMQ_PASS) -X PUT -H "content-type:application/json" \
 		$(RMQ_API_URL)/exchanges/%2f/$(EXCHANGE) -d '{"type":"fanout","durable":true}'
-	@echo "\n2️⃣  Binding Response Stream to CDC Exchange..."
+	@echo "\n2️⃣ Binding Response Stream to CDC Exchange..."
 	@echo "   Note: If the stream doesn't exist yet, run your Rust app once first."
 	@curl -s -u $(RMQ_USER):$(RMQ_PASS) -X POST -H "content-type:application/json" \
 		$(RMQ_API_URL)/bindings/%2f/e/$(EXCHANGE)/q/$(RES_STREAM) -d '{"routing_key":""}'
 	@echo "\n✅ Infrastructure bridge created."
 
-# --- 4. TigerBeetle CDC (Change Data Capture) ---
+# --- 5. TigerBeetle CDC (Change Data Capture) ---
 
 start-cdc: install-db ## Start the CDC job (Bridge between TB and RMQ Exchange)
 	@echo "🔄 Starting TigerBeetle CDC..."
@@ -123,7 +127,7 @@ start-cdc: install-db ## Start the CDC job (Bridge between TB and RMQ Exchange)
 		--password=$(RMQ_PASS) \
 		--publish-exchange=$(EXCHANGE)
 
-# --- 5. Cleanup ---
+# --- 6. Cleanup ---
 
 clean: ## Wipe database data files
 	@echo "🧹 Cleaning database files..."
@@ -138,12 +142,29 @@ clean-bin: ## Remove TigerBeetle binary
 clean-all: clean clean-bin ## Remove everything (database + binary)
 	@echo "✅ Full cleanup complete"
 
-# --- 6. Development Helpers ---
+# --- 7. Application Build & Run ---
+
+build-producer: ## Build the Go producer binary
+	@echo "🔨 Building Go producer..."
+	@mkdir -p $(PRODUCER_DIR)/bin
+	@# cd into producer directory so Go finds go.mod and local files correctly
+	(cd $(PRODUCER_DIR) && go build -o bin/$(APP_NAME) main.go)
+	@echo "✅ Producer built at $(PRODUCER_DIR)/bin/$(APP_NAME)"
+
+run-producer: build-producer ## Build and run the Go producer
+	@echo "🚀 Running producer..."
+	@(cd $(PRODUCER_DIR) && ./bin/$(APP_NAME))
+
+build-all: proto build-producer ## Build everything (Protobuf + Binaries)
+
+# --- 8. Development Helpers ---
 
 check-deps: ## Check if all dependencies are available
 	@echo "🔍 Checking dependencies..."
-	@command -v curl >/dev/null 2>&1 || { echo "❌ curl is required but not installed."; exit 1; }
-	@command -v unzip >/dev/null 2>&1 || { echo "❌ unzip is required but not installed."; exit 1; }
+	@command -v curl >/dev/null 2>&1 || { echo "❌ curl is required"; exit 1; }
+	@command -v unzip >/dev/null 2>&1 || { echo "❌ unzip is required"; exit 1; }
+	@command -v protoc >/dev/null 2>&1 || { echo "❌ protoc is required"; exit 1; }
+	@command -v go >/dev/null 2>&1 || { echo "❌ go is required"; exit 1; }
 	@echo "✅ All dependencies available"
 
 status: ## Show status of TigerBeetle and database
