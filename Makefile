@@ -17,11 +17,14 @@ proto: proto-go proto-rust ## Generate protobuf code for both Go and Rust
 
 proto-go:
 	@echo "Generating protobuf files..."
-	protoc \
+	@protoc \
 		-I ./proto \
 		--go_out=producer/pkg/models/proto \
 		--go_opt=paths=source_relative \
+		--go-grpc_out=producer/pkg/models/proto \
+		--go-grpc_opt=paths=source_relative \
 		./proto/task.proto
+
 	@echo "✓ Protobuf generation complete"
 
 proto-rust: ## Generate Rust protobuf code

@@ -1,4 +1,5 @@
 use crate::config::Config;
+use crate::task::task_service_client::TaskServiceClient;
 use crate::task::TaskResponse;
 use crate::worker::ContentType;
 use anyhow::Result;
@@ -6,11 +7,12 @@ use rabbitmq_stream_client::types::{ByteCapacity, Message as StreamMessage, Resp
 use rabbitmq_stream_client::{error::StreamCreateError, NoDedup};
 use rabbitmq_stream_client::{Environment, Producer};
 use tigerbeetle_unofficial::Client;
-use tracing::info;
+use tracing::{error, info};
 use uuid::Uuid;
 
 use std::sync::Arc;
 use tokio::sync::{Mutex, OnceCell};
+use tonic::Request;
 
 static TB_CLIENT: OnceCell<Arc<Mutex<Client>>> = OnceCell::const_new();
 
@@ -84,28 +86,6 @@ async fn init_response_producer() -> Result<Producer<NoDedup>> {
     Ok(producer)
 }
 
-pub async fn send_response(
-    bytes: Vec<u8>,
-    content_type: ContentType,
-    correlation_id: Option<String>,
-) -> Result<()> {
-    let producer = get_response_producer().await?;
-
-    let mut props = StreamMessage::builder()
-        .properties()
-        .content_type(content_type.as_str())
-        .message_id(Uuid::new_v4().to_string());
-
-    if let Some(cid) = correlation_id {
-        props = props.correlation_id(cid);
-    }
-
-    let msg = props.message_builder().body(bytes).build();
-
-    producer.send_with_confirm(msg).await?;
-    Ok(())
-}
-
 pub async fn send_task_response(
     response: &TaskResponse,
     content_type: ContentType,
@@ -114,8 +94,11 @@ pub async fn send_task_response(
     use prost::Message as ProstMessage;
     use serde_json::to_vec as json_serialize;
 
+    let config = Config::from_env()?;
+
+    // 1. Serialize response
     let bytes = match content_type {
-        ContentType::Json => json_serialize(&response)?,
+        ContentType::Json => json_serialize(response)?,
         ContentType::Protobuf => {
             let mut buf = Vec::with_capacity(response.encoded_len());
             response.encode(&mut buf)?;
@@ -123,5 +106,58 @@ pub async fn send_task_response(
         }
     };
 
-    send_response(bytes, content_type, correlation_id).await
+    // 2. Resolve correlation_id ONCE
+    let correlation_id = match correlation_id {
+        Some(cid) if !cid.is_empty() => cid,
+        _ => {
+            let fallback = Uuid::new_v4().to_string();
+            error!(
+                "⚠️ Missing or empty correlation_id for response id={}, generated fallback={}",
+                response.id, fallback
+            );
+            fallback
+        }
+    };
+
+    // Clone for async task
+    let correlation_id_clone = correlation_id.clone();
+
+    // 3. Send to RabbitMQ
+    let producer = get_response_producer().await?;
+
+    let msg = StreamMessage::builder()
+        .properties()
+        .content_type(content_type.as_str())
+        .message_id(Uuid::new_v4().to_string())
+        .correlation_id(correlation_id)
+        .message_builder()
+        .body(bytes)
+        .build();
+
+    producer.send_with_confirm(msg).await?;
+
+    // 5. Fire-and-forget gRPC callback
+    let response_clone = response.clone();
+
+    tokio::spawn(async move {
+        let conn = format!("http://{}:{}", config.host, config.grpc_port);
+
+        info!(
+            "📡 gRPC publish_response started (id={}, correlation_id={})",
+            response_clone.id, conn
+        );
+
+        match TaskServiceClient::connect(conn).await {
+            Ok(mut client) => match client.publish_response(Request::new(response_clone)).await {
+                Ok(_) => info!("✅ gRPC publish_response succeeded",),
+                Err(e) => error!("❌ gRPC publish_response failed : {}", e),
+            },
+            Err(e) => error!(
+                "❌ gRPC connection failed (id={}, correlation_id={}): {}",
+                response_clone.id, correlation_id_clone, e
+            ),
+        }
+    });
+
+    Ok(())
 }

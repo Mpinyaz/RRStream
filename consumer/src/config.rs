@@ -10,6 +10,7 @@ pub struct Config {
     pub stream_name: String,
     pub consumer_name: String,
     pub tb_address: String,
+    pub grpc_port: u16,
 }
 
 impl Config {
@@ -30,6 +31,10 @@ impl Config {
             consumer_name: env::var("RABBITMQ_CONSUMER_NAME")
                 .unwrap_or_else(|_| "rust_consumer".to_string()),
             tb_address: env::var("TB_ADDRESS").unwrap_or_else(|_| "3000".to_string()),
+            grpc_port: env::var("GRPC_PORT")
+                .context("GRPC_PORT must be set")?
+                .parse()
+                .context("GRPC_PORT must be a valid number")?,
         })
     }
 }

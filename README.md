@@ -1,132 +1,82 @@
 # RabbitMQ Stream Task System
 
 A high-performance, distributed task processing system built on **RabbitMQ
-Streams**, with a **Golang producer** and a **Rust consumer**, using **Protocol
-Buffers** for strict schema and type safety. Additionally, it leverages the
-**TigerBeetle financial database** for storing financial records with
-exceptional throughput.
+Streams**, with a **Golang producer**, a **Rust consumer**, and a **gRPC-based
+submission API**, using **Protocol Buffers** for strict schema and type safety.
+The system leverages the **TigerBeetle financial database** for storing
+financial records with exceptional throughput and strong correctness guarantees.
 
 ## Overview
 
 This project implements a **polyglot, stream-based task processing
 architecture** optimized for **throughput, low latency, and correctness** in
-financial operations. The system is designed to handle **millions of financial
-transactions** with strong consistency guarantees and full audit trails.
+financial operations.
+
+The system supports **synchronous task submission via gRPC**, while execution
+remains **asynchronous, durable, and replayable** via RabbitMQ Streams.
+
+### Key Idea
+
+- **gRPC** is used for request/response semantics (task submission + responses)
+- **RabbitMQ Streams** is the durable execution backbone
+- **Rust consumers** execute tasks asynchronously and at scale
+- **TigerBeetle** guarantees ACID financial correctness
 
 ## Why This Stack?
 
 ### Go Producer
 
-- Excellent ergonomics for API development and validation logic
-- Natural JSON handling for client-facing interfaces
-- Fast compilation and deployment cycles
-- JSON → Protobuf conversion with type safety
-- Publisher confirms for durability
+- Excellent ergonomics for API development
+- Strong validation and schema enforcement
+- Natural fit for gRPC servers
+- JSON → Protobuf conversion for REST (optional)
+- Publishes validated tasks to RabbitMQ Streams
+- Sends execution responses back via gRPC
 
 ### Rust Consumer
 
 - Zero-cost abstractions and memory safety
-- Async processing with Tokio
+- High-performance async execution with Tokio
 - Enum-based task routing
 - Direct TigerBeetle integration
+- Acts as a **gRPC client** to publish task responses
 
 ### RabbitMQ Streams
 
 - Append-only log semantics
 - Message replay and consumer offsets
 - Horizontal scaling via consumer groups
+- Ideal for financial workloads and recovery
 
 ### Protocol Buffers
 
 - Cross-language schema consistency
 - Backward/forward compatibility
 - Compact binary encoding
+- Single source of truth for API + messaging
 
 ### TigerBeetle
 
 - ACID-compliant financial ledger
 - Double-entry accounting
-- Massive throughput with auditability
+- Extremely high throughput
+- Immutable audit log
 
 ## Architecture
 
-```
-┌─────────────┐
-│   Clients   │  ← REST API, gRPC, or CLI
-│  (External) │
-└──────┬──────┘
-       │ JSON Requests
-       ▼
-┌──────────────────────┐
-│    Go Producer       │
-│  ┌────────────────┐  │
-│  │ Validation     │  │  ← Schema validation
-│  │ Layer          │  │     Rate limiting
-│  └────────┬───────┘  │     Authentication
-│           │          │
-│  ┌────────▼───────┐  │
-│  │ Protobuf       │  │  ← Type-safe encoding
-│  │ Serialization  │  │     Compression
-│  └────────┬───────┘  │
-│           │          │
-│  ┌────────▼───────┐  │
-│  │ Stream         │  │  ← Publisher confirms
-│  │ Publisher      │  │     Batching
-│  └────────────────┘  │     Retry logic
-└──────────┬───────────┘
-           │ Protobuf Messages
-           ▼
-┌────────────────────────┐
-│  RabbitMQ Streams      │
-│  ┌──────────────────┐  │
-│  │ Persistent Log   │  │  ← Disk-based storage
-│  │ (Append-Only)    │  │     Configurable retention
-│  └──────────────────┘  │     Replication support
-│                        │
-│  Features:             │
-│  • Consumer offsets    │
-│  • Message replay      │
-│  • Multiple consumers  │
-│  • Consumer groups     │
-└────────────┬───────────┘
-             │
-             ▼
-┌──────────────────────────┐
-│   Rust Consumer Pool     │
-│  ┌────────────────────┐  │
-│  │ Consumer Group     │  │  ← Load balancing
-│  │ (Worker 1..N)      │  │     Parallel processing
-│  └─────────┬──────────┘  │
-│            │             │
-│  ┌─────────▼──────────┐  │
-│  │ Protobuf Decoder   │  │  ← Zero-copy parsing
-│  └─────────┬──────────┘  │     Type validation
-│            │             │
-│  ┌─────────▼──────────┐  │
-│  │ Task Router        │  │  ← Enum-based dispatch
-│  │ (by TaskType)      │  │     Business logic
-│  └─────────┬──────────┘  │
-│            │             │
-│  ┌─────────▼──────────┐  │
-│  │ TigerBeetle        │  │  ← Batch operations
-│  │ Client             │  │     Error handling
-│  └────────────────────┘  │     Retry logic
-└──────────────┬───────────┘
-               │
-               ▼
-┌────────────────────────────┐
-│     TigerBeetle Cluster    │
-│  ┌──────────────────────┐  │
-│  │ Distributed Ledger   │  │  ← ACID transactions
-│  │ (Financial DB)       │  │     Double-entry accounting
-│  └──────────────────────┘  │     Consensus protocol
-│                            │     Immutable audit log
-│  Guarantees:               │
-│  • Strict serializability  │
-│  • Two-phase commit        │
-│  • Automatic failover      │
-└────────────────────────────┘
-```
+┌─────────────┐ │ Clients │ │ (Rust / CLI │ │ / Services)│ └──────┬──────┘ │
+gRPC (SubmitTask) ▼ ┌──────────────────────────┐ │ Go gRPC Server │ │
+┌────────────────────┐ │ │ │ Validation Layer │ │ │ └─────────┬──────────┘ │ │ │
+│ │ ┌─────────▼──────────┐ │ │ │ Protobuf Encoding │ │ │ └─────────┬──────────┘
+│ │ │ │ │ ┌─────────▼──────────┐ │ │ │ RabbitMQ Stream │ │ │ │ Producer │ │ │
+└────────────────────┘ │ └──────────┬───────────────┘ │ Protobuf Messages ▼
+┌────────────────────────┐ │ RabbitMQ Streams │ │ ┌──────────────────┐ │ │ │
+Persistent Log │ │ │ └──────────────────┘ │ └──────────┬─────────────┘ │ ▼
+┌──────────────────────────┐ │ Rust Consumer Pool │ │ ┌────────────────────┐ │ │
+│ Task Router │ │ │ └─────────┬──────────┘ │ │ │ │ │ ┌─────────▼──────────┐ │ │
+│ TigerBeetle Client │ │ │ └─────────┬──────────┘ │ │ │ │ │
+┌─────────▼──────────┐ │ │ │ gRPC Client │ │ │ └────────────────────┘ │
+└──────────────────────────┘
 
 ## Data Flow
 

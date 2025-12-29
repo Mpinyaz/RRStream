@@ -12,6 +12,7 @@ import (
 
 	models "rrproducer/pkg/models/proto"
 
+	"github.com/google/uuid"
 	"github.com/rabbitmq/rabbitmq-stream-go-client/pkg/amqp"
 	stream "github.com/rabbitmq/rabbitmq-stream-go-client/pkg/stream"
 	"go.uber.org/zap"
@@ -111,9 +112,11 @@ func (sp *StreamProducer) SendTaskJSON(task *models.TaskRequest) error {
 		return err
 	}
 
+	correlationID := uuid.NewString()
 	msg := amqp.NewMessage(taskJSON)
 	msg.Properties = &amqp.MessageProperties{
-		ContentType: "application/json",
+		ContentType:   "application/json",
+		CorrelationID: correlationID,
 	}
 
 	atomic.AddInt32(&sp.pendingConfirms, 1)
@@ -126,9 +129,11 @@ func (sp *StreamProducer) SendTaskProtobuf(task *models.TaskRequest) error {
 		return err
 	}
 
+	correlationID := uuid.NewString()
 	msg := amqp.NewMessage(taskProto)
 	msg.Properties = &amqp.MessageProperties{
-		ContentType: "application/x-protobuf",
+		ContentType:   "application/x-protobuf",
+		CorrelationID: correlationID,
 	}
 
 	atomic.AddInt32(&sp.pendingConfirms, 1)

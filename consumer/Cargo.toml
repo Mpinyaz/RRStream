@@ -24,7 +24,7 @@ tigerbeetle-unofficial = "0.14.17"
 chrono = "*"
 [build-dependencies]
 tonic-prost-build = "*"
-
+tonic-build = "0.14.2"
 
 [[example]]
 name = "test_producer"

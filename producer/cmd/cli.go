@@ -14,5 +14,8 @@ func Execute() {
 
 func init() {
 	rootCmd.AddCommand(startCmd)
+
+	rootCmd.AddCommand(taskCmd)
 	rootCmd.AddCommand(publishCmd)
+	rootCmd.AddCommand(serveCmd)
 }

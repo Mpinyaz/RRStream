@@ -82,12 +82,47 @@ func (TaskType) EnumDescriptor() ([]byte, []int) {
 	return file_task_proto_rawDescGZIP(), []int{0}
 }
 
-// Main Task Request - Flattened for 2025 compatibility
+type Empty struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Empty) Reset() {
+	*x = Empty{}
+	mi := &file_task_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Empty) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Empty) ProtoMessage() {}
+
+func (x *Empty) ProtoReflect() protoreflect.Message {
+	mi := &file_task_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Empty.ProtoReflect.Descriptor instead.
+func (*Empty) Descriptor() ([]byte, []int) {
+	return file_task_proto_rawDescGZIP(), []int{0}
+}
+
 type TaskRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// --- Metadata ---
 	Id         string   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	TaskType   TaskType `protobuf:"varint,2,opt,name=task_type,json=taskType,proto3,enum=task.TaskType" json:"task_type,omitempty"` // e.g., "create_account", "create_transfer", "batch_accounts"
+	TaskType   TaskType `protobuf:"varint,2,opt,name=task_type,json=taskType,proto3,enum=task.TaskType" json:"task_type,omitempty"`
 	CreatedAt  int64    `protobuf:"varint,3,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	Priority   *uint32  `protobuf:"varint,4,opt,name=priority,proto3,oneof" json:"priority,omitempty"`
 	RetryCount *int32   `protobuf:"varint,5,opt,name=retry_count,json=retryCount,proto3,oneof" json:"retry_count,omitempty"`
@@ -119,7 +154,7 @@ type TaskRequest struct {
 
 func (x *TaskRequest) Reset() {
 	*x = TaskRequest{}
-	mi := &file_task_proto_msgTypes[0]
+	mi := &file_task_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -131,7 +166,7 @@ func (x *TaskRequest) String() string {
 func (*TaskRequest) ProtoMessage() {}
 
 func (x *TaskRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_task_proto_msgTypes[0]
+	mi := &file_task_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -144,7 +179,7 @@ func (x *TaskRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TaskRequest.ProtoReflect.Descriptor instead.
 func (*TaskRequest) Descriptor() ([]byte, []int) {
-	return file_task_proto_rawDescGZIP(), []int{0}
+	return file_task_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *TaskRequest) GetId() string {
@@ -311,7 +346,7 @@ type UInt128 struct {
 
 func (x *UInt128) Reset() {
 	*x = UInt128{}
-	mi := &file_task_proto_msgTypes[1]
+	mi := &file_task_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -323,7 +358,7 @@ func (x *UInt128) String() string {
 func (*UInt128) ProtoMessage() {}
 
 func (x *UInt128) ProtoReflect() protoreflect.Message {
-	mi := &file_task_proto_msgTypes[1]
+	mi := &file_task_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -336,7 +371,7 @@ func (x *UInt128) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UInt128.ProtoReflect.Descriptor instead.
 func (*UInt128) Descriptor() ([]byte, []int) {
-	return file_task_proto_rawDescGZIP(), []int{1}
+	return file_task_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *UInt128) GetLow() uint64 {
@@ -369,7 +404,7 @@ type CreateAccountRequest struct {
 
 func (x *CreateAccountRequest) Reset() {
 	*x = CreateAccountRequest{}
-	mi := &file_task_proto_msgTypes[2]
+	mi := &file_task_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -381,7 +416,7 @@ func (x *CreateAccountRequest) String() string {
 func (*CreateAccountRequest) ProtoMessage() {}
 
 func (x *CreateAccountRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_task_proto_msgTypes[2]
+	mi := &file_task_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -394,7 +429,7 @@ func (x *CreateAccountRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateAccountRequest.ProtoReflect.Descriptor instead.
 func (*CreateAccountRequest) Descriptor() ([]byte, []int) {
-	return file_task_proto_rawDescGZIP(), []int{2}
+	return file_task_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *CreateAccountRequest) GetId() *UInt128 {
@@ -464,7 +499,7 @@ type CreateTransferRequest struct {
 
 func (x *CreateTransferRequest) Reset() {
 	*x = CreateTransferRequest{}
-	mi := &file_task_proto_msgTypes[3]
+	mi := &file_task_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -476,7 +511,7 @@ func (x *CreateTransferRequest) String() string {
 func (*CreateTransferRequest) ProtoMessage() {}
 
 func (x *CreateTransferRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_task_proto_msgTypes[3]
+	mi := &file_task_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -489,7 +524,7 @@ func (x *CreateTransferRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateTransferRequest.ProtoReflect.Descriptor instead.
 func (*CreateTransferRequest) Descriptor() ([]byte, []int) {
-	return file_task_proto_rawDescGZIP(), []int{3}
+	return file_task_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *CreateTransferRequest) GetId() *UInt128 {
@@ -569,7 +604,7 @@ type TaskResponse struct {
 
 func (x *TaskResponse) Reset() {
 	*x = TaskResponse{}
-	mi := &file_task_proto_msgTypes[4]
+	mi := &file_task_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -581,7 +616,7 @@ func (x *TaskResponse) String() string {
 func (*TaskResponse) ProtoMessage() {}
 
 func (x *TaskResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_task_proto_msgTypes[4]
+	mi := &file_task_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -594,7 +629,7 @@ func (x *TaskResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TaskResponse.ProtoReflect.Descriptor instead.
 func (*TaskResponse) Descriptor() ([]byte, []int) {
-	return file_task_proto_rawDescGZIP(), []int{4}
+	return file_task_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *TaskResponse) GetId() string {
@@ -656,7 +691,7 @@ type Account struct {
 
 func (x *Account) Reset() {
 	*x = Account{}
-	mi := &file_task_proto_msgTypes[5]
+	mi := &file_task_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -668,7 +703,7 @@ func (x *Account) String() string {
 func (*Account) ProtoMessage() {}
 
 func (x *Account) ProtoReflect() protoreflect.Message {
-	mi := &file_task_proto_msgTypes[5]
+	mi := &file_task_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -681,7 +716,7 @@ func (x *Account) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Account.ProtoReflect.Descriptor instead.
 func (*Account) Descriptor() ([]byte, []int) {
-	return file_task_proto_rawDescGZIP(), []int{5}
+	return file_task_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *Account) GetId() *UInt128 {
@@ -757,7 +792,7 @@ type AccountResult struct {
 
 func (x *AccountResult) Reset() {
 	*x = AccountResult{}
-	mi := &file_task_proto_msgTypes[6]
+	mi := &file_task_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -769,7 +804,7 @@ func (x *AccountResult) String() string {
 func (*AccountResult) ProtoMessage() {}
 
 func (x *AccountResult) ProtoReflect() protoreflect.Message {
-	mi := &file_task_proto_msgTypes[6]
+	mi := &file_task_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -782,7 +817,7 @@ func (x *AccountResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AccountResult.ProtoReflect.Descriptor instead.
 func (*AccountResult) Descriptor() ([]byte, []int) {
-	return file_task_proto_rawDescGZIP(), []int{6}
+	return file_task_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *AccountResult) GetAccounts() []*Account {
@@ -815,7 +850,7 @@ type Transfer struct {
 
 func (x *Transfer) Reset() {
 	*x = Transfer{}
-	mi := &file_task_proto_msgTypes[7]
+	mi := &file_task_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -827,7 +862,7 @@ func (x *Transfer) String() string {
 func (*Transfer) ProtoMessage() {}
 
 func (x *Transfer) ProtoReflect() protoreflect.Message {
-	mi := &file_task_proto_msgTypes[7]
+	mi := &file_task_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -840,7 +875,7 @@ func (x *Transfer) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Transfer.ProtoReflect.Descriptor instead.
 func (*Transfer) Descriptor() ([]byte, []int) {
-	return file_task_proto_rawDescGZIP(), []int{7}
+	return file_task_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *Transfer) GetId() *UInt128 {
@@ -909,7 +944,7 @@ type TransferResult struct {
 
 func (x *TransferResult) Reset() {
 	*x = TransferResult{}
-	mi := &file_task_proto_msgTypes[8]
+	mi := &file_task_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -921,7 +956,7 @@ func (x *TransferResult) String() string {
 func (*TransferResult) ProtoMessage() {}
 
 func (x *TransferResult) ProtoReflect() protoreflect.Message {
-	mi := &file_task_proto_msgTypes[8]
+	mi := &file_task_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -934,7 +969,7 @@ func (x *TransferResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TransferResult.ProtoReflect.Descriptor instead.
 func (*TransferResult) Descriptor() ([]byte, []int) {
-	return file_task_proto_rawDescGZIP(), []int{8}
+	return file_task_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *TransferResult) GetTransfers() []*Transfer {
@@ -956,7 +991,8 @@ var File_task_proto protoreflect.FileDescriptor
 const file_task_proto_rawDesc = "" +
 	"\n" +
 	"\n" +
-	"task.proto\x12\x04task\"\xa2\t\n" +
+	"task.proto\x12\x04task\"\a\n" +
+	"\x05Empty\"\xa2\t\n" +
 	"\vTaskRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12+\n" +
 	"\ttask_type\x18\x02 \x01(\x0e2\x0e.task.TaskTypeR\btaskType\x12\x1d\n" +
@@ -1082,7 +1118,11 @@ const file_task_proto_rawDesc = "" +
 	"\x0fLOOKUP_ACCOUNTS\x10\x03\x12\x13\n" +
 	"\x0fCREATE_TRANSFER\x10\x04\x12\x13\n" +
 	"\x0fBATCH_TRANSFERS\x10\x05\x12\x14\n" +
-	"\x10LOOKUP_TRANSFERS\x10\x06B#Z!rrproducer/producer/models;modelsb\x06proto3"
+	"\x10LOOKUP_TRANSFERS\x10\x062o\n" +
+	"\vTaskService\x12,\n" +
+	"\n" +
+	"SubmitTask\x12\x11.task.TaskRequest\x1a\v.task.Empty\x122\n" +
+	"\x0fPublishResponse\x12\x12.task.TaskResponse\x1a\v.task.EmptyB#Z!rrproducer/producer/models;modelsb\x06proto3"
 
 var (
 	file_task_proto_rawDescOnce sync.Once
@@ -1097,53 +1137,58 @@ func file_task_proto_rawDescGZIP() []byte {
 }
 
 var file_task_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_task_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_task_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_task_proto_goTypes = []any{
 	(TaskType)(0),                 // 0: task.TaskType
-	(*TaskRequest)(nil),           // 1: task.TaskRequest
-	(*UInt128)(nil),               // 2: task.UInt128
-	(*CreateAccountRequest)(nil),  // 3: task.CreateAccountRequest
-	(*CreateTransferRequest)(nil), // 4: task.CreateTransferRequest
-	(*TaskResponse)(nil),          // 5: task.TaskResponse
-	(*Account)(nil),               // 6: task.Account
-	(*AccountResult)(nil),         // 7: task.AccountResult
-	(*Transfer)(nil),              // 8: task.Transfer
-	(*TransferResult)(nil),        // 9: task.TransferResult
+	(*Empty)(nil),                 // 1: task.Empty
+	(*TaskRequest)(nil),           // 2: task.TaskRequest
+	(*UInt128)(nil),               // 3: task.UInt128
+	(*CreateAccountRequest)(nil),  // 4: task.CreateAccountRequest
+	(*CreateTransferRequest)(nil), // 5: task.CreateTransferRequest
+	(*TaskResponse)(nil),          // 6: task.TaskResponse
+	(*Account)(nil),               // 7: task.Account
+	(*AccountResult)(nil),         // 8: task.AccountResult
+	(*Transfer)(nil),              // 9: task.Transfer
+	(*TransferResult)(nil),        // 10: task.TransferResult
 }
 var file_task_proto_depIdxs = []int32{
 	0,  // 0: task.TaskRequest.task_type:type_name -> task.TaskType
-	2,  // 1: task.TaskRequest.account_id:type_name -> task.UInt128
-	2,  // 2: task.TaskRequest.transfer_id:type_name -> task.UInt128
-	2,  // 3: task.TaskRequest.debit_account_id:type_name -> task.UInt128
-	2,  // 4: task.TaskRequest.credit_account_id:type_name -> task.UInt128
-	2,  // 5: task.TaskRequest.pending_id:type_name -> task.UInt128
-	2,  // 6: task.TaskRequest.amount:type_name -> task.UInt128
-	2,  // 7: task.TaskRequest.user_data_128:type_name -> task.UInt128
-	3,  // 8: task.TaskRequest.account_batch:type_name -> task.CreateAccountRequest
-	4,  // 9: task.TaskRequest.transfer_batch:type_name -> task.CreateTransferRequest
-	2,  // 10: task.TaskRequest.lookup_ids:type_name -> task.UInt128
-	2,  // 11: task.CreateAccountRequest.id:type_name -> task.UInt128
-	2,  // 12: task.CreateAccountRequest.user_data_128:type_name -> task.UInt128
-	2,  // 13: task.CreateTransferRequest.id:type_name -> task.UInt128
-	2,  // 14: task.CreateTransferRequest.debit_account_id:type_name -> task.UInt128
-	2,  // 15: task.CreateTransferRequest.credit_account_id:type_name -> task.UInt128
-	2,  // 16: task.CreateTransferRequest.amount:type_name -> task.UInt128
-	2,  // 17: task.CreateTransferRequest.pending_id:type_name -> task.UInt128
-	7,  // 18: task.TaskResponse.account_result:type_name -> task.AccountResult
-	9,  // 19: task.TaskResponse.transfer_result:type_name -> task.TransferResult
-	2,  // 20: task.Account.id:type_name -> task.UInt128
-	2,  // 21: task.Account.debits_pending:type_name -> task.UInt128
-	2,  // 22: task.Account.debits_posted:type_name -> task.UInt128
-	2,  // 23: task.Account.credits_pending:type_name -> task.UInt128
-	2,  // 24: task.Account.credits_posted:type_name -> task.UInt128
-	6,  // 25: task.AccountResult.accounts:type_name -> task.Account
-	2,  // 26: task.Transfer.id:type_name -> task.UInt128
-	2,  // 27: task.Transfer.debit_account_id:type_name -> task.UInt128
-	2,  // 28: task.Transfer.credit_account_id:type_name -> task.UInt128
-	2,  // 29: task.Transfer.amount:type_name -> task.UInt128
-	8,  // 30: task.TransferResult.transfers:type_name -> task.Transfer
-	31, // [31:31] is the sub-list for method output_type
-	31, // [31:31] is the sub-list for method input_type
+	3,  // 1: task.TaskRequest.account_id:type_name -> task.UInt128
+	3,  // 2: task.TaskRequest.transfer_id:type_name -> task.UInt128
+	3,  // 3: task.TaskRequest.debit_account_id:type_name -> task.UInt128
+	3,  // 4: task.TaskRequest.credit_account_id:type_name -> task.UInt128
+	3,  // 5: task.TaskRequest.pending_id:type_name -> task.UInt128
+	3,  // 6: task.TaskRequest.amount:type_name -> task.UInt128
+	3,  // 7: task.TaskRequest.user_data_128:type_name -> task.UInt128
+	4,  // 8: task.TaskRequest.account_batch:type_name -> task.CreateAccountRequest
+	5,  // 9: task.TaskRequest.transfer_batch:type_name -> task.CreateTransferRequest
+	3,  // 10: task.TaskRequest.lookup_ids:type_name -> task.UInt128
+	3,  // 11: task.CreateAccountRequest.id:type_name -> task.UInt128
+	3,  // 12: task.CreateAccountRequest.user_data_128:type_name -> task.UInt128
+	3,  // 13: task.CreateTransferRequest.id:type_name -> task.UInt128
+	3,  // 14: task.CreateTransferRequest.debit_account_id:type_name -> task.UInt128
+	3,  // 15: task.CreateTransferRequest.credit_account_id:type_name -> task.UInt128
+	3,  // 16: task.CreateTransferRequest.amount:type_name -> task.UInt128
+	3,  // 17: task.CreateTransferRequest.pending_id:type_name -> task.UInt128
+	8,  // 18: task.TaskResponse.account_result:type_name -> task.AccountResult
+	10, // 19: task.TaskResponse.transfer_result:type_name -> task.TransferResult
+	3,  // 20: task.Account.id:type_name -> task.UInt128
+	3,  // 21: task.Account.debits_pending:type_name -> task.UInt128
+	3,  // 22: task.Account.debits_posted:type_name -> task.UInt128
+	3,  // 23: task.Account.credits_pending:type_name -> task.UInt128
+	3,  // 24: task.Account.credits_posted:type_name -> task.UInt128
+	7,  // 25: task.AccountResult.accounts:type_name -> task.Account
+	3,  // 26: task.Transfer.id:type_name -> task.UInt128
+	3,  // 27: task.Transfer.debit_account_id:type_name -> task.UInt128
+	3,  // 28: task.Transfer.credit_account_id:type_name -> task.UInt128
+	3,  // 29: task.Transfer.amount:type_name -> task.UInt128
+	9,  // 30: task.TransferResult.transfers:type_name -> task.Transfer
+	2,  // 31: task.TaskService.SubmitTask:input_type -> task.TaskRequest
+	6,  // 32: task.TaskService.PublishResponse:input_type -> task.TaskResponse
+	1,  // 33: task.TaskService.SubmitTask:output_type -> task.Empty
+	1,  // 34: task.TaskService.PublishResponse:output_type -> task.Empty
+	33, // [33:35] is the sub-list for method output_type
+	31, // [31:33] is the sub-list for method input_type
 	31, // [31:31] is the sub-list for extension type_name
 	31, // [31:31] is the sub-list for extension extendee
 	0,  // [0:31] is the sub-list for field type_name
@@ -1154,19 +1199,19 @@ func file_task_proto_init() {
 	if File_task_proto != nil {
 		return
 	}
-	file_task_proto_msgTypes[0].OneofWrappers = []any{}
-	file_task_proto_msgTypes[2].OneofWrappers = []any{}
+	file_task_proto_msgTypes[1].OneofWrappers = []any{}
 	file_task_proto_msgTypes[3].OneofWrappers = []any{}
 	file_task_proto_msgTypes[4].OneofWrappers = []any{}
+	file_task_proto_msgTypes[5].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_task_proto_rawDesc), len(file_task_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   9,
+			NumMessages:   10,
 			NumExtensions: 0,
-			NumServices:   0,
+			NumServices:   1,
 		},
 		GoTypes:           file_task_proto_goTypes,
 		DependencyIndexes: file_task_proto_depIdxs,

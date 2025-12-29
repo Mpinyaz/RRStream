@@ -5,7 +5,7 @@ pub mod task {
     tonic::include_proto!("task");
 }
 
-use anyhow::{anyhow, Result};
+use anyhow::anyhow;
 use tigerbeetle_unofficial::error::{CreateAccountError, CreateAccountErrorKind};
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ErrorKind {
@@ -51,42 +51,42 @@ pub trait ErrorKindExt {
     fn with_kind(self, kind: ErrorKind) -> anyhow::Error;
 }
 
-impl<T> ErrorKindExt for Result<T, anyhow::Error> {
+// Implement for anyhow::Error
+impl ErrorKindExt for anyhow::Error {
     fn with_kind(self, kind: ErrorKind) -> anyhow::Error {
-        match self {
-            Ok(_) => anyhow!("attempted to attach error kind to Ok value"),
-            Err(e) => e.context(format!("ErrorKind::{kind:?}")),
-        }
+        self.context(format!("ErrorKind::{kind:?}"))
     }
 }
 
 /// Helper to extract ErrorKind from anyhow::Error chain
 pub fn get_error_kind(error: &anyhow::Error) -> Option<ErrorKind> {
-    let error_str = format!("{error:?}");
-
-    if error_str.contains("ErrorKind::NetworkTimeout") {
-        Some(ErrorKind::NetworkTimeout)
-    } else if error_str.contains("ErrorKind::DatabaseUnavailable") {
-        Some(ErrorKind::DatabaseUnavailable)
-    } else if error_str.contains("ErrorKind::TemporaryOverload") {
-        Some(ErrorKind::TemporaryOverload)
-    } else if error_str.contains("ErrorKind::InvalidTaskFormat") {
-        Some(ErrorKind::InvalidTaskFormat)
-    } else if error_str.contains("ErrorKind::AccountAlreadyExists") {
-        Some(ErrorKind::AccountAlreadyExists)
-    } else if error_str.contains("ErrorKind::InsufficientBalance") {
-        Some(ErrorKind::InsufficientBalance)
-    } else if error_str.contains("ErrorKind::InvalidOperation") {
-        Some(ErrorKind::InvalidOperation)
-    } else if error_str.contains("ErrorKind::ProtobufDecode") {
-        Some(ErrorKind::ProtobufDecode)
-    } else if error_str.contains("ErrorKind::TigerBeetle") {
-        Some(ErrorKind::TigerBeetle)
-    } else if error_str.contains("ErrorKind::RabbitMQ") {
-        Some(ErrorKind::RabbitMQ)
-    } else {
-        None
+    // Walk the chain of error contexts
+    for cause in error.chain() {
+        let err_str = format!("{cause:?}");
+        if err_str.contains("ErrorKind::NetworkTimeout") {
+            return Some(ErrorKind::NetworkTimeout);
+        } else if err_str.contains("ErrorKind::DatabaseUnavailable") {
+            return Some(ErrorKind::DatabaseUnavailable);
+        } else if err_str.contains("ErrorKind::TemporaryOverload") {
+            return Some(ErrorKind::TemporaryOverload);
+        } else if err_str.contains("ErrorKind::InvalidTaskFormat") {
+            return Some(ErrorKind::InvalidTaskFormat);
+        } else if err_str.contains("ErrorKind::AccountAlreadyExists") {
+            return Some(ErrorKind::AccountAlreadyExists);
+        } else if err_str.contains("ErrorKind::InsufficientBalance") {
+            return Some(ErrorKind::InsufficientBalance);
+        } else if err_str.contains("ErrorKind::InvalidOperation") {
+            return Some(ErrorKind::InvalidOperation);
+        } else if err_str.contains("ErrorKind::ProtobufDecode") {
+            return Some(ErrorKind::ProtobufDecode);
+        } else if err_str.contains("ErrorKind::TigerBeetle") {
+            return Some(ErrorKind::TigerBeetle);
+        } else if err_str.contains("ErrorKind::RabbitMQ") {
+            return Some(ErrorKind::RabbitMQ);
+        }
     }
+
+    None
 }
 
 /// Check if an error is retryable

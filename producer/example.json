@@ -1,11 +1,32 @@
 {
-  "id": "task-457",
+  "id": "task-789",
+  "taskType": 2,
+  "createdAt": 1766864710,
+  "accountBatch": [
+    {
+      "id": { "low": 2000, "high": 0 },
+      "ledger": 1,
+      "code": 100,
+      "userData32": 1
+    },
+    {
+      "id": { "low": 2001, "high": 0 },
+      "ledger": 1,
+      "code": 100,
+      "userData32": 2
+    }
+  ]
+}
+
+
+{
+  "id": "task-456",
   "taskType": 4,
   "createdAt": 1766864710,
   "ledger": 1,
   "code": 200,
   "transferId": {
-    "low": 2000,
+    "low": 1001,
     "high": 0
   },
   "debitAccountId": {
@@ -13,7 +34,7 @@
     "high": 0
   },
   "creditAccountId": {
-    "low": 1000,
+    "low": 1002,
     "high": 0
   },
   "amount": {

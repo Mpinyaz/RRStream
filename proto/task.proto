@@ -2,6 +2,12 @@ syntax = "proto3";
 package task;
 
 option go_package = "rrproducer/producer/models;models";
+
+service TaskService {
+  rpc SubmitTask(TaskRequest) returns (Empty);
+  rpc PublishResponse(TaskResponse) returns (Empty);
+}
+
 enum TaskType {
   UNKNOWN = 0;
   CREATE_ACCOUNT = 1;
@@ -11,6 +17,8 @@ enum TaskType {
   BATCH_TRANSFERS = 5;
   LOOKUP_TRANSFERS = 6;
 }
+
+message Empty {}
 message TaskRequest {
   // --- Metadata ---
   string id = 1;
