@@ -63,7 +63,10 @@ remains **asynchronous, durable, and replayable** via RabbitMQ Streams.
 - Immutable audit log
 
 ## Architecture
+
+```
 ┌─────────────┐
+
 │   Clients   │
 │ (Rust / CLI │
 │  / Services)│
@@ -109,6 +112,7 @@ remains **asynchronous, durable, and replayable** via RabbitMQ Streams.
 │  │ gRPC Client        │  │
 │  └────────────────────┘  │
 └──────────────────────────┘
+```
 
 ## Data Flow
 
