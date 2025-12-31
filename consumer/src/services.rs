@@ -112,7 +112,7 @@ pub async fn send_task_response(
         _ => {
             let fallback = Uuid::new_v4().to_string();
             error!(
-                "⚠️ Missing or empty correlation_id for response id={}, generated fallback={}",
+                "Missing or empty correlation_id for response id={}, generated fallback={}",
                 response.id, fallback
             );
             fallback
@@ -143,17 +143,17 @@ pub async fn send_task_response(
         let conn = format!("http://{}:{}", config.host, config.grpc_port);
 
         info!(
-            "📡 gRPC publish_response started (id={}, correlation_id={})",
-            response_clone.id, conn
+            "gRPC publish_response started (id={}, correlation_id={})",
+            response_clone.id, correlation_id_clone
         );
 
         match TaskServiceClient::connect(conn).await {
             Ok(mut client) => match client.publish_response(Request::new(response_clone)).await {
-                Ok(_) => info!("✅ gRPC publish_response succeeded",),
-                Err(e) => error!("❌ gRPC publish_response failed : {}", e),
+                Ok(_) => info!("gRPC publish_response succeeded",),
+                Err(e) => error!("gRPC publish_response failed : {}", e),
             },
             Err(e) => error!(
-                "❌ gRPC connection failed (id={}, correlation_id={}): {}",
+                "gRPC connection failed (id={}, correlation_id={}): {}",
                 response_clone.id, correlation_id_clone, e
             ),
         }

@@ -12,7 +12,6 @@ use rrconsumer::worker::{decode_message, process_task};
 use tokio::signal;
 use tokio::task;
 use tracing::{error, info, warn};
-use uuid::Uuid;
 
 struct MessageProcessor;
 
@@ -25,24 +24,25 @@ impl MessageProcessor {
         // Decode the incoming message
         let decoded = decode_message(msg)?;
 
-        let correlation_id = decoded
-            .correlation_id
-            .clone()
-            .unwrap_or_else(|| Uuid::new_v4().to_string());
+        let correlation_id = decoded.correlation_id.clone().unwrap();
 
         info!(
-            "Processing incoming task: (id: {},correlation_id: {})",
+            "Processing incoming task: id={}, correlation_id={}",
             decoded.task.id, correlation_id
         );
 
         let response_msg = process_task(msg).await?;
 
         // Send the response with the same correlation ID
-        send_task_response(&response_msg, decoded.content_type, decoded.correlation_id).await?;
+        send_task_response(
+            &response_msg,
+            decoded.content_type,
+            Some(correlation_id.clone()),
+        )
+        .await?;
 
-        // Log the response sent
         info!(
-            "Response succesfully sent (id: {},correlation_id: {})",
+            "Response successfully sent: id={}, correlation_id={}",
             decoded.task.id, correlation_id
         );
 

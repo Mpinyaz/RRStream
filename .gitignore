@@ -5,3 +5,5 @@ consumer/target
 producer/logs/app.log
 db
 bin
+logs
+rrstreamer

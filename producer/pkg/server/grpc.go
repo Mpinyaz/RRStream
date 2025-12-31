@@ -25,7 +25,7 @@ func NewServer(producer *producer.StreamProducer) *Server {
 }
 
 func (s *Server) SubmitTask(ctx context.Context, in *pb.TaskRequest) (*pb.Empty, error) {
-	msg := fmt.Sprintf("📥 Submitted %s request", in.TaskType.String())
+	msg := fmt.Sprintf("Submitted %s request", in.TaskType.String())
 	s.Producer.Logger.Info(msg,
 		zap.String("task id", in.Id))
 
@@ -34,19 +34,19 @@ func (s *Server) SubmitTask(ctx context.Context, in *pb.TaskRequest) (*pb.Empty,
 		return nil, status.Errorf(codes.Internal, "failed to publish task: %v", err)
 	}
 
-	s.Producer.Logger.Info("✅ Task published successfully", zap.String("task_id", in.Id))
+	s.Producer.Logger.Info("Task published successfully", zap.String("task_id", in.Id))
 
 	return &pb.Empty{}, nil
 }
 
 func (s *Server) PublishResponse(ctx context.Context, in *pb.TaskResponse) (*pb.Empty, error) {
-	msg := fmt.Sprintf("📥 Received %s response", in.TaskType)
+	msg := fmt.Sprintf("Received %s response", in.TaskType)
 	s.Producer.Logger.Info(msg,
 		zap.String("task id", in.Id))
 	jsonBytes, err := protojson.MarshalOptions{
 		Multiline:       false,
-		EmitUnpopulated: true, // optional but useful for logs
-		UseProtoNames:   true, // keeps proto field names
+		EmitUnpopulated: true,
+		UseProtoNames:   true,
 	}.Marshal(in)
 
 	if err != nil {

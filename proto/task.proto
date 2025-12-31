@@ -1,12 +1,15 @@
 syntax = "proto3";
+
 package task;
 
 option go_package = "rrproducer/producer/models;models";
+
 
 service TaskService {
   rpc SubmitTask(TaskRequest) returns (Empty);
   rpc PublishResponse(TaskResponse) returns (Empty);
 }
+
 
 enum TaskType {
   UNKNOWN = 0;

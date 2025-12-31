@@ -1,6 +1,7 @@
 use crate::task::{
     Account, AccountResult, TaskRequest, TaskResponse, TaskType, Transfer, TransferResult, UInt128,
 };
+use crate::ErrorKind;
 use crate::{invalid_task_format, services::get_tb_client};
 use anyhow::Result;
 use prost::Message as ProstMessage;
@@ -97,8 +98,18 @@ pub fn decode_message(msg: &StreamMessage) -> Result<DecodedMessage> {
         .and_then(|p| p.content_type.as_ref())
         .map(|s| s.to_string())
         .unwrap_or_else(|| "application/x-protobuf".to_string());
-    let correlation_id =
-        properties.and_then(|p| p.correlation_id.as_ref().map(|cid| format!("{cid:?}")));
+
+    // Get or generate correlation_id once
+    let correlation_id = properties
+        .unwrap()
+        .correlation_id
+        .as_ref()
+        .and_then(|msg_id| {
+            let cloned = msg_id.clone();
+            cloned.try_into().ok()
+        })
+        .unwrap_or_else(|| Uuid::new_v4().to_string());
+
     let content_type = ContentType::from_str(&content_type_string).unwrap_or(ContentType::Protobuf);
 
     info!(
@@ -113,7 +124,11 @@ pub fn decode_message(msg: &StreamMessage) -> Result<DecodedMessage> {
         ContentType::Protobuf => decode_protobuf(bytes)?,
     };
 
-    Ok(DecodedMessage::new(task, content_type, correlation_id))
+    Ok(DecodedMessage::new(
+        task,
+        content_type,
+        Some(correlation_id),
+    ))
 }
 
 fn decode_protobuf(bytes: &[u8]) -> Result<TaskRequest> {
@@ -232,7 +247,12 @@ async fn handle_create_account(task: &TaskRequest) -> Result<TaskResponse> {
                 .collect::<Vec<_>>()
                 .join(";");
 
-            error!("Failed to create account id={}: {}", id, error_msg);
+            error!(
+                "{}: Failed to create account id={}: {}",
+                ErrorKind::TigerBeetle,
+                id,
+                error_msg
+            );
 
             Ok(TaskResponse {
                 id: task.id.clone(),
@@ -245,8 +265,8 @@ async fn handle_create_account(task: &TaskRequest) -> Result<TaskResponse> {
         }
         Err(e) => {
             // Fallback for any other error variant
-            let error_msg = format!("TigerBeetle error: {e}");
-            error!("{}", error_msg);
+            let error_msg = format!("{e}");
+            error!("{}: {}", ErrorKind::TigerBeetle, error_msg);
             Ok(TaskResponse {
                 id: task.id.clone(),
                 task_type: task.task_type.to_string(),
@@ -265,7 +285,17 @@ async fn handle_create_account_batch(task: &TaskRequest) -> Result<TaskResponse>
     info!("handle_create_account_batch called for task_id={}", task.id);
 
     if task.account_batch.is_empty() {
-        return Err(invalid_task_format("account_batch cannot be empty"));
+        let err_msg = "account_batch cannot be empty";
+        error!("{}:{}", ErrorKind::InvalidOperation, err_msg);
+
+        return Ok(TaskResponse {
+            id: task.id.clone(),
+            task_type: task.task_type.to_string(),
+            success: true,
+            message: err_msg.to_string(),
+            account_result: None,
+            transfer_result: None,
+        });
     }
 
     let tb = get_tb_client().await?;
@@ -314,7 +344,7 @@ async fn handle_create_account_batch(task: &TaskRequest) -> Result<TaskResponse>
         }
         Err(CreateAccountsError::Api(api_error)) => {
             // Extract individual errors with account indices
-            let error_msg = api_error
+            let err_msg = api_error
                 .as_slice()
                 .iter()
                 .map(|individual_error| {
@@ -327,37 +357,38 @@ async fn handle_create_account_batch(task: &TaskRequest) -> Result<TaskResponse>
                 .collect::<Vec<_>>()
                 .join("; ");
 
-            error!("Failed to create account batch: {}", error_msg);
+            error!("{}:{}", ErrorKind::InvalidOperation, err_msg);
 
             Ok(TaskResponse {
                 id: task.id.clone(),
                 task_type: task.task_type.to_string(),
                 success: false,
-                message: error_msg,
+                message: err_msg,
                 account_result: None,
                 transfer_result: None,
             })
         }
         Err(CreateAccountsError::Send(send_error)) => {
-            let error_msg = format!("Network/Transport Error: {send_error}");
-            error!("{}", error_msg);
+            let err_msg = format!("Network/Transport Error: {send_error}");
+            error!("{}:{}", ErrorKind::NetworkTimeout, err_msg);
             Ok(TaskResponse {
                 id: task.id.clone(),
                 task_type: task.task_type.to_string(),
                 success: false,
-                message: error_msg,
+                message: err_msg,
                 account_result: None,
                 transfer_result: None,
             })
         }
         Err(e) => {
-            let error_msg = format!("Failed to create account batch: {e}");
-            error!("{}", error_msg);
+            let err_msg = format!("Failed to create account batch: {e}");
+            error!("{}:{}", ErrorKind::InvalidInput, err_msg);
+
             Ok(TaskResponse {
                 id: task.id.clone(),
                 task_type: task.task_type.to_string(),
                 success: false,
-                message: error_msg,
+                message: err_msg,
                 account_result: None,
                 transfer_result: None,
             })
@@ -434,16 +465,30 @@ async fn handle_create_transfer(task: &TaskRequest) -> Result<TaskResponse> {
 
     // Validate amount is non-zero
     if amount == 0 {
-        return Err(invalid_task_format(
-            "Transfer amount must be greater than 0",
-        ));
+        let err_msg = "Transfer amount must be greater than 0";
+        error!("{}:{}", ErrorKind::InvalidInput, err_msg);
+        return Ok(TaskResponse {
+            id: task.id.clone(),
+            task_type: task.task_type.to_string(),
+            success: false,
+            message: format!("Failed transfer: {err_msg}"),
+            account_result: None,
+            transfer_result: None,
+        });
     }
 
     // Validate accounts are different
     if debit == credit {
-        return Err(invalid_task_format(
-            "Debit and credit accounts must be different",
-        ));
+        let err_msg = "Debit and credit accounts must be different";
+        error!("{}:{}", ErrorKind::InvalidInput, err_msg);
+        return Ok(TaskResponse {
+            id: task.id.clone(),
+            task_type: task.task_type.to_string(),
+            success: false,
+            message: format!("Failed transfer: {err_msg}"),
+            account_result: None,
+            transfer_result: None,
+        });
     }
 
     let ledger = task
@@ -496,21 +541,17 @@ async fn handle_create_transfer(task: &TaskRequest) -> Result<TaskResponse> {
         }
 
         Err(CreateTransfersError::Api(api_error)) => {
-            let error_msg = api_error
+            let details = api_error
                 .as_slice()
                 .iter()
-                .map(|individual_error| {
-                    // Individual error likely has .error() method returning CreateAccountError
-                    // format_account_error(&individual_error.inner())
-                    individual_error.inner().to_string()
-                })
+                .map(|e| format!("transfer[{}]: {}", e.index(), e.inner()))
                 .collect::<Vec<_>>()
-                .join(";");
+                .join("; ");
 
-            error!(
-                "Failed to create transfer for transfer id={}: {}",
-                transfer_id, error_msg
-            );
+            let error_msg =
+                format!("Failed to create transfer (transfer_id={transfer_id}): {details}",);
+
+            error!(error_msg);
 
             Ok(TaskResponse {
                 id: task.id.clone(),
@@ -583,16 +624,32 @@ async fn handle_create_transfer_batch(task: &TaskRequest) -> Result<TaskResponse
                 .ok_or_else(|| invalid_task_format(format!("{prefix}.amount missing")))?,
         );
 
+        // Validate amount is non-zero
         if amount == 0 {
-            return Err(invalid_task_format(format!(
-                "{prefix}: amount must be greater than 0"
-            )));
+            let err_msg = format!("{prefix}: Transfer amount must be greater than 0");
+            error!("{}:{}", ErrorKind::InvalidInput, err_msg);
+            return Ok(TaskResponse {
+                id: task.id.clone(),
+                task_type: task.task_type.to_string(),
+                success: false,
+                message: format!("Failed transfer: {err_msg}"),
+                account_result: None,
+                transfer_result: None,
+            });
         }
 
+        // Validate accounts are different
         if debit_account_id == credit_account_id {
-            return Err(invalid_task_format(format!(
-                "{prefix}: debit and credit accounts must be different"
-            )));
+            let err_msg = format!("{prefix}: Debit and credit accounts must be different");
+            error!("{}:{}", ErrorKind::InvalidInput, err_msg);
+            return Ok(TaskResponse {
+                id: task.id.clone(),
+                task_type: task.task_type.to_string(),
+                success: false,
+                message: format!("Failed transfer: {err_msg}"),
+                account_result: None,
+                transfer_result: None,
+            });
         }
 
         let transfer_id = req
@@ -608,7 +665,7 @@ async fn handle_create_transfer_batch(task: &TaskRequest) -> Result<TaskResponse
             .code
             .unwrap_or(0)
             .try_into()
-            .map_err(|_| invalid_task_format(format!("{prefix}.code exceeds u16 range")))?;
+            .map_err(|_| invalid_task_format(format!("{prefix}: code exceeds u16 range")))?;
 
         let t = TBTransfer::new(transfer_id)
             .with_debit_account_id(debit_account_id)
@@ -637,7 +694,7 @@ async fn handle_create_transfer_batch(task: &TaskRequest) -> Result<TaskResponse
 
         Err(CreateTransfersError::Api(api_error)) => {
             // Extract indexed per-transfer errors
-            let error_msg = api_error
+            let details = api_error
                 .as_slice()
                 .iter()
                 .map(|individual_error| {
@@ -650,7 +707,9 @@ async fn handle_create_transfer_batch(task: &TaskRequest) -> Result<TaskResponse
                 .collect::<Vec<_>>()
                 .join("; ");
 
-            error!("Failed to create transfer batch: {}", error_msg);
+            let error_msg = format!("Failed to create transfer batch: {details}");
+
+            error!(error_msg);
 
             Ok(TaskResponse {
                 id: task.id.clone(),

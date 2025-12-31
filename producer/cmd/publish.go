@@ -32,7 +32,7 @@ var publishCmd = &cobra.Command{
 
 func init() {
 	publishCmd.Flags().StringVarP(&jsonFile, "file", "f", "", "Path to JSON file containing task (required)")
-	publishCmd.Flags().StringVarP(&envFile, "env", "e", "../.env", "Path to .env file")
+	publishCmd.Flags().StringVarP(&envFile, "env", "e", "./.env", "Path to .env file")
 	publishCmd.Flags().BoolVarP(&useProtobuf, "protobuf", "p", false, "Send as protobuf format")
 	publishCmd.MarkFlagRequired("file")
 }

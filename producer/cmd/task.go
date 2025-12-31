@@ -71,7 +71,7 @@ func init() {
 
 func runTask(cmd *cobra.Command, args []string) error {
 	log := utils.GetLogger()
-	if err := godotenv.Load("../.env"); err != nil {
+	if err := godotenv.Load("./.env"); err != nil {
 		log.Fatal("No .env file found", zap.Error(err))
 	}
 	// Parse JSON payload into TaskRequest

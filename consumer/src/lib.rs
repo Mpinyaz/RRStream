@@ -4,8 +4,8 @@ pub mod worker;
 pub mod task {
     tonic::include_proto!("task");
 }
-
 use anyhow::anyhow;
+use std::fmt;
 use tigerbeetle_unofficial::error::{CreateAccountError, CreateAccountErrorKind};
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ErrorKind {
@@ -16,6 +16,7 @@ pub enum ErrorKind {
 
     // Permanent errors (should not retry)
     InvalidTaskFormat,
+    InvalidInput,
     AccountAlreadyExists,
     InsufficientBalance,
     InvalidOperation,
@@ -23,7 +24,11 @@ pub enum ErrorKind {
     TigerBeetle,
     RabbitMQ,
 }
-
+impl fmt::Display for ErrorKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{self:?}") // This prints the variant name (e.g., "InvalidInput")
+    }
+}
 impl ErrorKind {
     /// Determines if this error should trigger a retry
     pub fn is_retryable(&self) -> bool {
@@ -137,7 +142,7 @@ pub fn invalid_operation(msg: impl std::fmt::Display) -> anyhow::Error {
 /* ----------------------------- Error Formatting ----------------------------- */
 
 /// Format CreateAccountError with descriptive message
-fn format_account_error(err: &CreateAccountError) -> String {
+pub fn format_account_error(err: &CreateAccountError) -> String {
     match err.kind() {
         CreateAccountErrorKind::Exists => "Account already exists".to_string(),
         CreateAccountErrorKind::ExistsWithDifferentFlags => {
