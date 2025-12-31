@@ -13,7 +13,6 @@ use tigerbeetle_unofficial::error::{CreateAccountsError, CreateTransfersError};
 use tigerbeetle_unofficial::{Account as TBAccount, Transfer as TBTransfer};
 use tracing::{error, info};
 use uuid::Uuid;
-/* ----------------------------- Utilities ----------------------------- */
 
 fn system_time_to_u64(ts: SystemTime) -> u64 {
     ts.duration_since(UNIX_EPOCH).unwrap_or_default().as_nanos() as u64
@@ -35,8 +34,6 @@ pub fn proto_to_uint128(v: &UInt128) -> u128 {
     );
     val
 }
-
-/* ----------------------------- ContentType ----------------------------- */
 
 #[derive(Debug, Clone, Copy)]
 pub enum ContentType {
@@ -64,8 +61,6 @@ impl ContentType {
         }
     }
 }
-
-/* ----------------------------- Decode ----------------------------- */
 
 pub struct DecodedMessage {
     pub task: TaskRequest,
@@ -147,8 +142,6 @@ fn decode_json(bytes: &[u8]) -> Result<TaskRequest> {
     }
 }
 
-/* ----------------------------- Entry Point ----------------------------- */
-
 pub async fn process_task(msg: &StreamMessage) -> Result<TaskResponse> {
     info!("Starting process_task");
 
@@ -177,8 +170,6 @@ pub async fn process_task(msg: &StreamMessage) -> Result<TaskResponse> {
     info!("Finished process_task for task_id={}", decoded.task.id);
     response
 }
-
-/* ----------------------------- Accounts ----------------------------- */
 
 async fn handle_create_account(task: &TaskRequest) -> Result<TaskResponse> {
     info!("handle_create_account called for task_id={}", task.id);
@@ -278,8 +269,6 @@ async fn handle_create_account(task: &TaskRequest) -> Result<TaskResponse> {
         }
     }
 }
-
-/* ----------------------------- Account Batch ----------------------------- */
 
 async fn handle_create_account_batch(task: &TaskRequest) -> Result<TaskResponse> {
     info!("handle_create_account_batch called for task_id={}", task.id);
@@ -395,7 +384,6 @@ async fn handle_create_account_batch(task: &TaskRequest) -> Result<TaskResponse>
         }
     }
 }
-/* ----------------------------- Lookup Accounts ----------------------------- */
 
 async fn handle_lookup_accounts(task: &TaskRequest) -> Result<TaskResponse> {
     info!("handle_lookup_accounts called for task_id={}", task.id);
@@ -439,8 +427,6 @@ async fn handle_lookup_accounts(task: &TaskRequest) -> Result<TaskResponse> {
         transfer_result: None,
     })
 }
-
-/* ----------------------------- Create Transfer ----------------------------- */
 
 async fn handle_create_transfer(task: &TaskRequest) -> Result<TaskResponse> {
     info!("handle_create_transfer called for task_id={}", task.id);
@@ -589,8 +575,6 @@ async fn handle_create_transfer(task: &TaskRequest) -> Result<TaskResponse> {
         }
     }
 }
-
-/* ----------------------------- Transfer Batch ----------------------------- */
 
 async fn handle_create_transfer_batch(task: &TaskRequest) -> Result<TaskResponse> {
     info!(
@@ -751,8 +735,6 @@ async fn handle_create_transfer_batch(task: &TaskRequest) -> Result<TaskResponse
     }
 }
 
-/* ----------------------------- Lookup Transfers ----------------------------- */
-
 async fn handle_lookup_transfers(task: &TaskRequest) -> Result<TaskResponse> {
     info!("handle_lookup_transfers called for task_id={}", task.id);
 
@@ -816,8 +798,6 @@ async fn handle_lookup_transfers(task: &TaskRequest) -> Result<TaskResponse> {
         }
     }
 }
-
-/* ----------------------------- Encode Response ----------------------------- */
 
 pub fn encode_response(resp: &TaskResponse, ct: ContentType) -> Result<Vec<u8>> {
     info!("Encoding TaskResponse as {}", ct.as_str());

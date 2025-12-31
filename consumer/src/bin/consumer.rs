@@ -21,9 +21,7 @@ impl MessageProcessor {
     }
 
     async fn process(&self, msg: &StreamMessage) -> anyhow::Result<()> {
-        // Decode the incoming message
         let decoded = decode_message(msg)?;
-
         let correlation_id = decoded.correlation_id.clone().unwrap();
 
         info!(

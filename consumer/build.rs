@@ -1,5 +1,5 @@
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mut config = tonic_prost_build::Config::new(); // Or prost_build::Config
+    let mut config = tonic_prost_build::Config::new();
 
     let types = vec![
         "task.UInt128",
@@ -25,7 +25,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     config.field_attribute("task.UInt128.high", "#[serde(default)]");
 
     tonic_prost_build::configure()
-        .build_server(false) // You only want the client
+        .build_server(false)
         .build_client(true)
         .compile_with_config(config, &["../proto/task.proto"], &["../proto/"])?;
 
