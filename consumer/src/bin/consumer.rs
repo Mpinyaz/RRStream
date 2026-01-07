@@ -9,6 +9,7 @@ use rabbitmq_stream_client::Environment;
 use rrconsumer::config::Config;
 use rrconsumer::services::send_task_response;
 use rrconsumer::worker::{decode_message, process_task};
+use rrconsumer::{AppError, ErrorKind};
 use tokio::signal;
 use tokio::task;
 use tracing::{error, info, warn};
@@ -21,15 +22,35 @@ impl MessageProcessor {
     }
 
     async fn process(&self, msg: &StreamMessage) -> anyhow::Result<()> {
-        let decoded = decode_message(msg)?;
-        let correlation_id = decoded.correlation_id.clone().unwrap();
+        // Decode message with proper error handling
+        let decoded = decode_message(msg).map_err(|e| {
+            let app_err = AppError::new(ErrorKind::RabbitMQ, "process_message")
+                .message(format!("Failed to decode message: {}", e))
+                .source(e);
+            error!("{}", app_err);
+            app_err.into_anyhow()
+        })?;
+
+        let correlation_id = decoded
+            .correlation_id
+            .clone()
+            .unwrap_or_else(|| "unknown".to_string());
 
         info!(
             "Processing incoming task: id={}, correlation_id={}",
             decoded.task.id, correlation_id
         );
 
-        let response_msg = process_task(msg).await?;
+        // Process task with error handling
+        let response_msg = process_task(msg).await.map_err(|e| {
+            let app_err = AppError::new(ErrorKind::InvalidOperation, "process_message")
+                .message(format!("Failed to process task: {}", e))
+                .context("task_id", decoded.task.id.clone())
+                .context("correlation_id", correlation_id.clone())
+                .source(e);
+            error!("{}", app_err);
+            app_err.into_anyhow()
+        })?;
 
         // Send the response with the same correlation ID
         send_task_response(
@@ -37,7 +58,16 @@ impl MessageProcessor {
             decoded.content_type,
             Some(correlation_id.clone()),
         )
-        .await?;
+        .await
+        .map_err(|e| {
+            let app_err = AppError::new(ErrorKind::RabbitMQ, "process_message")
+                .message(format!("Failed to send response: {}", e))
+                .context("task_id", decoded.task.id.clone())
+                .context("correlation_id", correlation_id.clone())
+                .source(e);
+            error!("{}", app_err);
+            app_err.into_anyhow()
+        })?;
 
         info!(
             "Response successfully sent: id={}, correlation_id={}",
@@ -59,59 +89,99 @@ async fn ensure_streams(env: &Environment, base: &str) -> Result<()> {
             .create(&stream)
             .await
         {
-            Ok(_) => info!("Stream '{}' created", stream),
-
+            Ok(_) => info!("Stream '{}' created successfully", stream),
             Err(StreamCreateError::Create {
                 status: ResponseCode::StreamAlreadyExists | ResponseCode::PrecoditionFailed,
                 ..
             }) => {
                 info!("Stream '{}' already exists", stream);
             }
-
-            Err(e) => return Err(e.into()),
+            Err(e) => {
+                let app_err = AppError::new(ErrorKind::RabbitMQ, "ensure_streams")
+                    .message(format!("Failed to create stream '{}': {}", stream, e))
+                    .context("stream_name", stream.clone());
+                error!("{}", app_err);
+                return Err(app_err.into_anyhow());
+            }
         }
     }
 
     Ok(())
 }
 
+async fn initialize_environment(config: &Config) -> Result<Environment> {
+    Environment::builder()
+        .host(&config.host)
+        .port(config.port)
+        .username(&config.username)
+        .password(&config.password)
+        .build()
+        .await
+        .map_err(|e| {
+            AppError::new(ErrorKind::RabbitMQ, "initialize_environment")
+                .message(format!("Failed to connect to RabbitMQ: {}", e))
+                .context("host", config.host.clone())
+                .context("port", config.port.to_string())
+                .into_anyhow()
+        })
+}
+
+async fn create_consumer(
+    environment: &Environment,
+    request_stream: &str,
+    consumer_name: &str,
+) -> Result<rabbitmq_stream_client::Consumer> {
+    environment
+        .consumer()
+        .name(consumer_name)
+        .offset(OffsetSpecification::Next)
+        .build(request_stream)
+        .await
+        .map_err(|e| {
+            AppError::new(ErrorKind::RabbitMQ, "create_consumer")
+                .message(format!("Failed to create consumer: {}", e))
+                .context("stream_name", request_stream.to_string())
+                .context("consumer_name", consumer_name.to_string())
+                .into_anyhow()
+        })
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
+    // Load environment variables
     dotenv().ok();
+
+    // Initialize logging
     tracing_subscriber::fmt()
         .with_max_level(tracing::Level::INFO)
         .init();
 
     info!("🚀 Starting RabbitMQ Stream Consumer");
 
-    let config = Config::from_env()?;
-    info!("Configuration loaded");
+    // Load configuration
+    let config = Config::from_env().map_err(|e| {
+        AppError::new(ErrorKind::InvalidInput, "main")
+            .message(format!("Failed to load configuration: {}", e))
+            .source(e)
+            .into_anyhow()
+    })?;
+    info!("Configuration loaded successfully");
 
-    let environment = Environment::builder()
-        .host(&config.host)
-        .port(config.port)
-        .username(&config.username)
-        .password(&config.password)
-        .build()
-        .await?;
-
+    // Connect to RabbitMQ
+    let environment = initialize_environment(&config).await?;
     info!(
         "Connected to RabbitMQ Stream at {}:{}",
         config.host, config.port
     );
 
-    // 🔒 Ensure streams exist ONCE
+    // Ensure streams exist
     ensure_streams(&environment, &config.stream_name).await?;
 
     let request_stream = format!("{}_requests", config.stream_name);
     let consumer_name = "tigerbeetle_consumer";
 
-    let mut consumer = environment
-        .consumer()
-        .name(consumer_name) // Enable offset tracking
-        .offset(OffsetSpecification::Next)
-        .build(&request_stream)
-        .await?;
+    // Create consumer
+    let mut consumer = create_consumer(&environment, &request_stream, consumer_name).await?;
 
     info!(
         "📡 Consumer '{}' started on stream: {}",
@@ -123,40 +193,80 @@ async fn main() -> Result<()> {
 
     let consumer_task = task::spawn(async move {
         let mut message_count = 0u64;
+        let mut error_count = 0u64;
 
         while let Some(delivery) = consumer.next().await {
             match delivery {
                 Ok(req) => {
                     message_count += 1;
 
-                    if let Err(e) = processor.process(req.message()).await {
-                        error!("Failed to process message: {}", e);
-                    }
+                    match processor.process(req.message()).await {
+                        Ok(_) => {
+                            if message_count % 10 == 0 {
+                                info!(
+                                    "Processed {} messages (errors: {})",
+                                    message_count, error_count
+                                );
+                            }
+                        }
+                        Err(e) => {
+                            error_count += 1;
+                            error!("Failed to process message {}: {}", message_count, e);
 
-                    if message_count % 10 == 0 {
-                        info!("Processed {} messages", message_count);
+                            // Check if error is retryable
+                            if rrconsumer::is_retryable(&e) {
+                                let delay = rrconsumer::retry_delay_ms(&e);
+                                warn!(
+                                    "Error is retryable, would retry after {}ms (not implemented yet)",
+                                    delay
+                                );
+                            } else {
+                                warn!("Error is permanent, skipping message");
+                            }
+                        }
                     }
                 }
-                Err(e) => error!("Error receiving message: {}", e),
+                Err(e) => {
+                    error_count += 1;
+                    let app_err = AppError::new(ErrorKind::RabbitMQ, "consumer_loop")
+                        .message(format!("Error receiving message: {}", e));
+                    error!("{}", app_err);
+                }
             }
         }
 
-        info!("Consumer stopped. Total processed: {}", message_count);
+        info!(
+            "Consumer stopped. Total processed: {}, Errors: {}",
+            message_count, error_count
+        );
     });
 
     info!("✅ Ready — waiting for messages");
     info!("Press Ctrl+C to shutdown");
 
+    // Wait for shutdown signal or consumer task completion
     tokio::select! {
         _ = signal::ctrl_c() => {
-            info!("Shutdown requested");
+            info!("Shutdown signal received (Ctrl+C)");
             if let Err(e) = handle.close().await {
-                warn!("Error closing consumer: {}", e);
+                let app_err = AppError::new(ErrorKind::RabbitMQ, "shutdown")
+                    .message(format!("Error closing consumer: {}", e));
+                warn!("{}", app_err);
+            } else {
+                info!("Consumer closed successfully");
             }
         }
         res = consumer_task => {
-            if let Err(e) = res {
-                error!("Consumer task failed: {}", e);
+            match res {
+                Ok(_) => {
+                    info!("Consumer task completed normally");
+                }
+                Err(e) => {
+                    let app_err = AppError::new(ErrorKind::InvalidOperation, "main")
+                        .message(format!("Consumer task panicked: {}", e));
+                    error!("{}", app_err);
+                    return Err(app_err.into_anyhow());
+                }
             }
         }
     }
