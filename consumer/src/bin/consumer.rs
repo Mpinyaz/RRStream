@@ -31,10 +31,7 @@ impl MessageProcessor {
             app_err.into_anyhow()
         })?;
 
-        let correlation_id = decoded
-            .correlation_id
-            .clone()
-            .unwrap_or_else(|| "unknown".to_string());
+        let correlation_id = decoded.correlation_id.clone();
 
         info!(
             "Processing incoming task: id={}, correlation_id={}",
