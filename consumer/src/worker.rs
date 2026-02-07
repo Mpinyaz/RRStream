@@ -68,15 +68,11 @@ impl ContentType {
 pub struct DecodedMessage {
     pub task: TaskRequest,
     pub content_type: ContentType,
-    pub correlation_id: Option<String>,
+    pub correlation_id: String,
 }
 
 impl DecodedMessage {
-    pub fn new(
-        task: TaskRequest,
-        content_type: ContentType,
-        correlation_id: Option<String>,
-    ) -> Self {
+    pub fn new(task: TaskRequest, content_type: ContentType, correlation_id: String) -> Self {
         info!("DecodedMessage created for task_id={}", task.id);
         Self {
             task,
@@ -100,16 +96,23 @@ pub fn decode_message(msg: &StreamMessage) -> Result<DecodedMessage> {
         .map(|s| s.to_string())
         .unwrap_or_else(|| "application/x-protobuf".to_string());
 
-    // Get or generate correlation_id once
-    let correlation_id = properties
+    let correlation_id = match properties
         .unwrap()
         .correlation_id
         .as_ref()
         .and_then(|msg_id| {
             let cloned = msg_id.clone();
             cloned.try_into().ok()
-        })
-        .unwrap_or_else(|| Uuid::new_v4().to_string());
+        }) {
+        Some(id) => id,
+        None => {
+            return Err(
+                AppError::new(ErrorKind::InvalidTaskFormat, "decode_message")
+                    .message("correlation_id must be provided")
+                    .into_anyhow(),
+            );
+        }
+    };
 
     let content_type = ContentType::from_str(&content_type_string).unwrap_or(ContentType::Protobuf);
 
@@ -125,11 +128,7 @@ pub fn decode_message(msg: &StreamMessage) -> Result<DecodedMessage> {
         ContentType::Protobuf => decode_protobuf(bytes)?,
     };
 
-    Ok(DecodedMessage::new(
-        task,
-        content_type,
-        Some(correlation_id),
-    ))
+    Ok(DecodedMessage::new(task, content_type, correlation_id))
 }
 
 fn decode_protobuf(bytes: &[u8]) -> Result<TaskRequest> {
